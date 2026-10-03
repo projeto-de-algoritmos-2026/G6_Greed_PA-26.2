@@ -55,12 +55,15 @@ casco mesmo quando a transmissão não chega a 100% de proximidade acústica.
 1. **Fase 1: Abisso Inicial (8.000m - 800 ATM)**
    * Mensagem: `"SOS SOS CASCO EM RISCO"`
    * Introdução amigável para compreender caracteres repetidos e frequências desbalanceadas.
+   * Margem de tolerância: 25% acima do custo ótimo.
 2. **Fase 2: Zona Hadal (9.500m - 950 ATM)**
    * Mensagem: `"CASCO RACHANDO. SOM NA PORTA. SOCORRO."`
    * Tensão crescente. Menor tolerância de ruído para escolhas subótimas.
+   * Margem de tolerância: 15% acima do custo ótimo.
 3. **Fase 3: Fossa das Marianas (11.000m - 1.100 ATM)**
    * Mensagem: `"PRESSAO CRITICA 8000 ATM. ENTIDADE NA ESCOTILHA. TRANSMITIR AGORA!"`
    * Desafio extremo contra o tempo e a proximidade da criatura.
+   * Margem de tolerância: 8% acima do custo ótimo.
 4. **Modo Transmissão Livre:**
    * Permite digitar qualquer mensagem arbitrária, gerando tabelas de frequência em tempo real.
 
