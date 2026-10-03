@@ -67,6 +67,10 @@ casco mesmo quando a transmissão não chega a 100% de proximidade acústica.
 4. **Modo Transmissão Livre:**
    * Permite digitar qualquer mensagem arbitrária, gerando tabelas de frequência em tempo real.
 
+A cota segura é calculada por `ceil(custo ótimo × (1 + margem da fase))`.
+Se o custo da árvore montada ultrapassar esse limite, a transmissão termina em
+colapso e exige uma nova tentativa.
+
 ---
 
 ## 🔊 Áudio Procedural (Web Audio API)
