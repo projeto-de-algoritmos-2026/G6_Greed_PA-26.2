@@ -425,6 +425,7 @@
 
 	function triggerGameOver(): void {
 		if (transmissionTimer) clearInterval(transmissionTimer);
+		transmissionTimer = null;
 		isTransmitting = false;
 		isGameOver = true;
 		audio.playCatastrophicBreach();
