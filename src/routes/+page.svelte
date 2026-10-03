@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import confetti from 'canvas-confetti';
 	import { HuffmanEngine, type HuffmanMetrics, type HuffmanNode } from '$lib/engine/huffman';
 	import { ProceduralAudioEngine } from '$lib/audio/soundscape';
 	import { Terminal3DManager } from '$lib/graphics/terminal3d';
@@ -97,6 +96,7 @@
 	onMount(() => {
 		if (canvasElement && terminalContainer) {
 			terminal3D = new Terminal3DManager(terminalContainer, canvasElement);
+			terminal3D.setAudioEngine(audio);
 
 			// Conecta ações disparadas ao clicar na tela do monitor principal 3D
 			terminal3D.onScreenAction((action) => {
@@ -135,9 +135,19 @@
 				} else if (action.type === 'TOGGLE_FOCUS') {
 					if (focusedScreen === 'main') resetCabinView();
 					else focusMonitor();
+				} else if (action.type === 'FOCUS_AUX') {
+					if (focusedScreen === 'aux') resetCabinView();
+					else focusAuxiliaryMonitor();
 				} else if (action.type === 'TOGGLE_MUTE') {
 					toggleMute();
 				}
+			});
+
+			// Mantém o estado da UI sincronizado quando a câmera foca ou reconfigura a visão
+			terminal3D.onFocusChange((target) => {
+				focusedScreen = target;
+				isZoomedIn = target === 'main';
+				syncScreenTexture();
 			});
 		}
 
@@ -251,6 +261,7 @@
 			activeMessage,
 			isMuted,
 			isZoomedIn,
+			focusedScreen,
 			acousticProximity,
 			levels: LEVELS.map((l) => ({
 				name: l.name,
@@ -397,16 +408,6 @@
 		isVictory = true;
 		audio.playTransmissionSuccess();
 		terminal3D?.setAlarm(false);
-
-		try {
-			confetti({
-				particleCount: 80,
-				spread: 70,
-				origin: { y: 0.6 },
-				colors: ['#00ffaa', '#00ffff', '#ffffff', '#22c55e']
-			});
-		} catch {}
-
 		refreshState();
 	}
 
@@ -430,7 +431,7 @@
 		}
 	}
 
-	let focusedScreen = $state<'main' | 'aux' | 'none'>('none');
+	let focusedScreen = $state<'main' | 'aux' | 'manual' | 'window' | 'poster' | 'none'>('none');
 
 	function focusMonitor(): void {
 		terminal3D?.focusMonitor();
@@ -443,6 +444,27 @@
 		terminal3D?.focusAuxiliaryMonitor();
 		isZoomedIn = false;
 		focusedScreen = 'aux';
+		syncScreenTexture();
+	}
+
+	function focusManual(): void {
+		terminal3D?.focusManual();
+		isZoomedIn = false;
+		focusedScreen = 'manual';
+		syncScreenTexture();
+	}
+
+	function focusWindow(): void {
+		terminal3D?.focusWindow();
+		isZoomedIn = false;
+		focusedScreen = 'window';
+		syncScreenTexture();
+	}
+
+	function focusPoster(): void {
+		terminal3D?.focusPoster();
+		isZoomedIn = false;
+		focusedScreen = 'poster';
 		syncScreenTexture();
 	}
 
@@ -477,6 +499,17 @@
 		} else if (e.key === 'c' || e.key === 'C') {
 			if (focusedScreen === 'aux') resetCabinView();
 			else focusAuxiliaryMonitor();
+		} else if (e.key === 'h' || e.key === 'H') {
+			if (focusedScreen === 'manual') resetCabinView();
+			else focusManual();
+		} else if (e.key === 'w' || e.key === 'W') {
+			if (focusedScreen === 'window') resetCabinView();
+			else focusWindow();
+		} else if (e.key === 'p' || e.key === 'P') {
+			if (focusedScreen === 'poster') resetCabinView();
+			else focusPoster();
+		} else if (e.key === 'l' || e.key === 'L') {
+			terminal3D?.toggleInspectionLight();
 		}
 	}
 </script>

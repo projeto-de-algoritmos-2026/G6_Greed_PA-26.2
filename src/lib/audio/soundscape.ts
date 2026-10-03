@@ -393,31 +393,367 @@ export class ProceduralAudioEngine {
 	}
 
 	/**
-	 * Sinal de socorro transmitido com sucesso (Acordo acústico de escape).
+	 * Sinal de socorro transmitido com sucesso (Alívio tenso e desconfortável):
+	 * Desligamento do transmissor de alta potência, alívio de sub-grave e silêncio abissal.
 	 */
 	public playTransmissionSuccess(): void {
 		if (!this.ctx || !this.masterGain || this.isMuted) return;
 		this.stopProximityAlarm();
 
 		const now = this.ctx.currentTime;
-		const chord = [523.25, 659.25, 783.99, 1046.5]; // C maior triunfante analógico
 
-		chord.forEach((freq, i) => {
+		// 1. Desaceleração de frequência e corte de potência do sonar
+		const osc = this.ctx.createOscillator();
+		const gain = this.ctx.createGain();
+		osc.type = 'sine';
+		osc.frequency.setValueAtTime(110, now);
+		osc.frequency.exponentialRampToValueAtTime(32, now + 1.8);
+
+		gain.gain.setValueAtTime(0.35, now);
+		gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
+
+		osc.connect(gain);
+		gain.connect(this.masterGain);
+		osc.start(now);
+		osc.stop(now + 2.1);
+
+		// 2. Ruído suave de despressurização/válvula de alívio
+		const bufferSize = Math.floor(this.ctx.sampleRate * 1.5);
+		const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufferSize; i++) {
+			data[i] = Math.random() * 2 - 1;
+		}
+
+		const noise = this.ctx.createBufferSource();
+		noise.buffer = buffer;
+		const filter = this.ctx.createBiquadFilter();
+		filter.type = 'lowpass';
+		filter.frequency.setValueAtTime(450, now);
+		filter.frequency.exponentialRampToValueAtTime(80, now + 1.5);
+
+		const noiseGain = this.ctx.createGain();
+		noiseGain.gain.setValueAtTime(0.18, now);
+		noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+
+		noise.connect(filter);
+		filter.connect(noiseGain);
+		noiseGain.connect(this.masterGain);
+		noise.start(now);
+		noise.stop(now + 1.6);
+	}
+
+	/**
+	 * Som mecânico do armário médico metálico embutido:
+	 * Ao abrir: estalido da tranca mecânica + guincho de dobradiça enferrujada.
+	 * Ao fechar: batida sólida de chapa de aço e engate de trava.
+	 */
+	public playCabinetDoor(isOpen: boolean): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+
+		if (isOpen) {
+			// 1. Estalidos da lingueta e trava mecânica
+			for (const offset of [0, 0.045]) {
+				const osc = this.ctx.createOscillator();
+				const gain = this.ctx.createGain();
+				osc.type = 'triangle';
+				osc.frequency.setValueAtTime(offset === 0 ? 1550 : 980, now + offset);
+				gain.gain.setValueAtTime(0.18, now + offset);
+				gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.04);
+				osc.connect(gain);
+				gain.connect(this.masterGain);
+				osc.start(now + offset);
+				osc.stop(now + offset + 0.05);
+			}
+
+			// 2. Guincho e ressonância de dobradiça metálica pesada
+			const hingeOsc = this.ctx.createOscillator();
+			const hingeGain = this.ctx.createGain();
+			const hingeFilter = this.ctx.createBiquadFilter();
+			hingeOsc.type = 'sawtooth';
+			hingeOsc.frequency.setValueAtTime(320, now + 0.05);
+			hingeOsc.frequency.linearRampToValueAtTime(460, now + 0.25);
+			hingeOsc.frequency.exponentialRampToValueAtTime(170, now + 0.55);
+
+			hingeFilter.type = 'bandpass';
+			hingeFilter.frequency.setValueAtTime(680, now + 0.05);
+			hingeFilter.Q.setValueAtTime(7.5, now + 0.05);
+
+			hingeGain.gain.setValueAtTime(0.001, now + 0.05);
+			hingeGain.gain.linearRampToValueAtTime(0.11, now + 0.18);
+			hingeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+			hingeOsc.connect(hingeFilter);
+			hingeFilter.connect(hingeGain);
+			hingeGain.connect(this.masterGain);
+			hingeOsc.start(now + 0.05);
+			hingeOsc.stop(now + 0.65);
+		} else {
+			// Batida sólida e encorpada de armário metálico fechando
+			const impactOsc = this.ctx.createOscillator();
+			const impactGain = this.ctx.createGain();
+			impactOsc.type = 'sine';
+			impactOsc.frequency.setValueAtTime(135, now);
+			impactOsc.frequency.exponentialRampToValueAtTime(36, now + 0.22);
+			impactGain.gain.setValueAtTime(0.35, now);
+			impactGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+			impactOsc.connect(impactGain);
+			impactGain.connect(this.masterGain);
+			impactOsc.start(now);
+			impactOsc.stop(now + 0.25);
+
+			const bufferSize = Math.floor(this.ctx.sampleRate * 0.18);
+			const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+			const data = buffer.getChannelData(0);
+			for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+			const noise = this.ctx.createBufferSource();
+			noise.buffer = buffer;
+			const filter = this.ctx.createBiquadFilter();
+			filter.type = 'bandpass';
+			filter.frequency.setValueAtTime(820, now);
+			filter.Q.setValueAtTime(3.8, now);
+
+			const noiseGain = this.ctx.createGain();
+			noiseGain.gain.setValueAtTime(0.22, now);
+			noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+			noise.connect(filter);
+			filter.connect(noiseGain);
+			noiseGain.connect(this.masterGain);
+			noise.start(now);
+			noise.stop(now + 0.2);
+		}
+	}
+
+	/**
+	 * Deslocamento maciço de água no abismo:
+	 * Sub-grave pulsante (26-60Hz) e turbulência hidrodinâmica gerada por corpos colossais.
+	 */
+	public playDeepWaterSurge(intensity: number = 1.0): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+		const dur = 3.2;
+
+		const osc = this.ctx.createOscillator();
+		const oscGain = this.ctx.createGain();
+		osc.type = 'sine';
+		osc.frequency.setValueAtTime(56, now);
+		osc.frequency.exponentialRampToValueAtTime(24, now + dur);
+
+		oscGain.gain.setValueAtTime(0.001, now);
+		oscGain.gain.linearRampToValueAtTime(0.48 * intensity, now + 0.85);
+		oscGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+		osc.connect(oscGain);
+		oscGain.connect(this.masterGain);
+		osc.start(now);
+		osc.stop(now + dur + 0.1);
+
+		// Turbulência de água filtrada
+		const bufferSize = Math.floor(this.ctx.sampleRate * dur);
+		const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+		const data = buffer.getChannelData(0);
+		let last = 0;
+		for (let i = 0; i < bufferSize; i++) {
+			const w = Math.random() * 2 - 1;
+			data[i] = (last + 0.05 * w) / 1.05;
+			last = data[i];
+		}
+
+		const noise = this.ctx.createBufferSource();
+		noise.buffer = buffer;
+		const filter = this.ctx.createBiquadFilter();
+		filter.type = 'lowpass';
+		filter.frequency.setValueAtTime(95, now);
+		filter.frequency.linearRampToValueAtTime(190, now + 1.1);
+		filter.frequency.exponentialRampToValueAtTime(38, now + dur);
+
+		const noiseGain = this.ctx.createGain();
+		noiseGain.gain.setValueAtTime(0.001, now);
+		noiseGain.gain.linearRampToValueAtTime(0.38 * intensity, now + 0.95);
+		noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+		noise.connect(filter);
+		filter.connect(noiseGain);
+		noiseGain.connect(this.masterGain);
+		noise.start(now);
+		noise.stop(now + dur + 0.1);
+	}
+
+	/**
+	 * Colisão física violenta contra o vidro de quartzo reforçado da janela:
+	 * Estalo de tensão do quartzo em 2.6kHz + ruído de choque + boom sísmico no casco.
+	 */
+	public playWindowImpact(): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+
+		// 1. Estalo de tensão do quartzo
+		const glassOsc = this.ctx.createOscillator();
+		const glassGain = this.ctx.createGain();
+		glassOsc.type = 'triangle';
+		glassOsc.frequency.setValueAtTime(2600, now);
+		glassOsc.frequency.exponentialRampToValueAtTime(1350, now + 0.14);
+		glassGain.gain.setValueAtTime(0.6, now);
+		glassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+		glassOsc.connect(glassGain);
+		glassGain.connect(this.masterGain);
+		glassOsc.start(now);
+		glassOsc.stop(now + 0.17);
+
+		// 2. Ruído de impacto do vidro (crack/shatter transient)
+		const bufferSize = Math.floor(this.ctx.sampleRate * 0.14);
+		const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+		const noise = this.ctx.createBufferSource();
+		noise.buffer = buffer;
+		const filter = this.ctx.createBiquadFilter();
+		filter.type = 'highpass';
+		filter.frequency.setValueAtTime(2800, now);
+		const noiseGain = this.ctx.createGain();
+		noiseGain.gain.setValueAtTime(0.45, now);
+		noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+		noise.connect(filter);
+		filter.connect(noiseGain);
+		noiseGain.connect(this.masterGain);
+		noise.start(now);
+		noise.stop(now + 0.14);
+
+		// 3. Boom grave e profundo de concussão no casco
+		const hullOsc = this.ctx.createOscillator();
+		const hullGain = this.ctx.createGain();
+		hullOsc.type = 'sine';
+		hullOsc.frequency.setValueAtTime(95, now);
+		hullOsc.frequency.exponentialRampToValueAtTime(20, now + 0.75);
+		hullGain.gain.setValueAtTime(0.82, now);
+		hullGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+		hullOsc.connect(hullGain);
+		hullGain.connect(this.masterGain);
+		hullOsc.start(now);
+		hullOsc.stop(now + 0.85);
+	}
+
+	/**
+	 * Arrasto de garras / apêndice quitinoso arranhando a face externa do vidro de quartzo:
+	 * Síntese FM de alta fricção com modulação dissonante e ressonância penetrante.
+	 */
+	public playWindowScrape(): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+		const dur = 2.4;
+
+		// Modulador FM
+		const modOsc = this.ctx.createOscillator();
+		const modGain = this.ctx.createGain();
+		modOsc.type = 'sawtooth';
+		modOsc.frequency.setValueAtTime(175, now);
+		modOsc.frequency.linearRampToValueAtTime(320, now + dur);
+		modGain.gain.setValueAtTime(480, now);
+
+		// Portadora FM
+		const carrierOsc = this.ctx.createOscillator();
+		carrierOsc.type = 'sine';
+		carrierOsc.frequency.setValueAtTime(1440, now);
+		carrierOsc.frequency.linearRampToValueAtTime(1160, now + dur);
+
+		modOsc.connect(carrierOsc.frequency);
+
+		const filter = this.ctx.createBiquadFilter();
+		filter.type = 'bandpass';
+		filter.frequency.setValueAtTime(1520, now);
+		filter.frequency.linearRampToValueAtTime(2250, now + dur * 0.6);
+		filter.frequency.exponentialRampToValueAtTime(1080, now + dur);
+		filter.Q.setValueAtTime(6.5, now);
+
+		const outGain = this.ctx.createGain();
+		outGain.gain.setValueAtTime(0.001, now);
+		outGain.gain.linearRampToValueAtTime(0.35, now + 0.2);
+		outGain.gain.setValueAtTime(0.3, now + dur * 0.7);
+		outGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+		carrierOsc.connect(filter);
+		filter.connect(outGain);
+		outGain.connect(this.masterGain);
+
+		modOsc.start(now);
+		carrierOsc.start(now);
+		modOsc.stop(now + dur + 0.1);
+		carrierOsc.stop(now + dur + 0.1);
+	}
+
+	/**
+	 * Ressonância harmônica etérea e misteriosa de bioluminescência abissal:
+	 * Acorde senoidal puro suave com modulação LFO lenta.
+	 */
+	public playBioluminescentHum(): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+		const dur = 4.2;
+
+		const freqs = [196.0, 293.66, 440.0];
+		freqs.forEach((freq, idx) => {
 			const osc = this.ctx!.createOscillator();
 			const gain = this.ctx!.createGain();
-
 			osc.type = 'sine';
-			osc.frequency.setValueAtTime(freq, now + i * 0.08);
+			osc.frequency.setValueAtTime(freq, now);
 
-			gain.gain.setValueAtTime(0.25 / chord.length, now + i * 0.08);
-			gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+			const lfo = this.ctx!.createOscillator();
+			const lfoGain = this.ctx!.createGain();
+			lfo.frequency.setValueAtTime(0.7 + idx * 0.2, now);
+			lfoGain.gain.setValueAtTime(2.8, now);
+			lfo.connect(osc.frequency);
+			lfo.start(now);
+			lfo.stop(now + dur);
+
+			gain.gain.setValueAtTime(0.0001, now);
+			gain.gain.linearRampToValueAtTime(0.09 / freqs.length, now + 1.2);
+			gain.gain.setValueAtTime(0.08 / freqs.length, now + dur - 1.2);
+			gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 			osc.connect(gain);
 			gain.connect(this.masterGain!);
-
-			osc.start(now + i * 0.08);
-			osc.stop(now + 1.3);
+			osc.start(now);
+			osc.stop(now + dur + 0.1);
 		});
+	}
+
+	/**
+	 * Cardume abissal em fuga súbita: micro-rajadas hidrodinâmicas de alta frequência.
+	 */
+	public playSwarmScatter(): void {
+		if (!this.ctx || !this.masterGain || this.isMuted) return;
+		const now = this.ctx.currentTime;
+		const dur = 1.8;
+
+		const bufferSize = Math.floor(this.ctx.sampleRate * dur);
+		const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+		const noise = this.ctx.createBufferSource();
+		noise.buffer = buffer;
+
+		const filter = this.ctx.createBiquadFilter();
+		filter.type = 'bandpass';
+		filter.frequency.setValueAtTime(1200, now);
+		filter.frequency.linearRampToValueAtTime(2400, now + 0.4);
+		filter.frequency.exponentialRampToValueAtTime(600, now + dur);
+		filter.Q.setValueAtTime(4.2, now);
+
+		const gain = this.ctx.createGain();
+		gain.gain.setValueAtTime(0.001, now);
+		gain.gain.linearRampToValueAtTime(0.2, now + 0.2);
+		gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+		noise.connect(filter);
+		filter.connect(gain);
+		gain.connect(this.masterGain);
+		noise.start(now);
+		noise.stop(now + dur + 0.1);
 	}
 
 	public dispose(): void {
