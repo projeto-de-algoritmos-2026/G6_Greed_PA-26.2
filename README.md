@@ -44,6 +44,10 @@ $$\text{Eficiência} = \left(\frac{\text{Bits Ótimos}}{\text{Bits do Jogador}}\
 * **Disparar Transmissão:** `[Tecla Enter]` ao completar a árvore. Cada bit é emitido com um pulso de sonar em tempo real.
 * **Controle de Som:** `[Tecla M]` para ativar/desativar mudo.
 
+Durante a transmissão, a quantidade de ruído acumulado é comparada à cota segura
+da fase. Árvores mais longas transmitem mais bits e podem provocar o colapso do
+casco mesmo quando a transmissão não chega a 100% de proximidade acústica.
+
 ---
 
 ## 🌊 Fases da Campanha
