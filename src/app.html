@@ -4,6 +4,15 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+				navigator.serviceWorker.getRegistrations().then((registrations) => {
+					for (const reg of registrations) {
+						reg.unregister();
+					}
+				});
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
