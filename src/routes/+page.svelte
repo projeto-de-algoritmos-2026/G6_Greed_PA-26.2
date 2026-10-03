@@ -378,8 +378,11 @@
 		transmittedBits = '';
 		refreshState();
 
-		const bitIntervalMs = 110;
-		const noisePerBit = 85.0 / fullBitStream.length;
+		const transmissionIntervalMs = 110;
+		// Cada fase define quantos bits podem ser transmitidos com segurança.
+		// Uma árvore acima da cota acumula ruído mais rapidamente e será
+		// rejeitada ao final da transmissão, mesmo que não atinja 100% antes.
+		const noisePerBit = safeBitQuota > 0 ? 85.0 / safeBitQuota : 0;
 
 		transmissionTimer = window.setInterval(() => {
 			if (currentBitIndex >= fullBitStream.length) {
@@ -399,12 +402,21 @@
 			if (acousticProximity >= 100) {
 				triggerGameOver();
 			}
-		}, bitIntervalMs);
+		}, transmissionIntervalMs);
 	}
 
 	function completeTransmissionVictory(): void {
 		if (transmissionTimer) clearInterval(transmissionTimer);
+		transmissionTimer = null;
 		isTransmitting = false;
+
+		// A cota é a regra de sobrevivência da fase: transmitir uma árvore
+		// completa, mas acima da margem permitida, ainda causa o colapso.
+		if (metrics.playerBits > safeBitQuota) {
+			triggerGameOver();
+			return;
+		}
+
 		isVictory = true;
 		audio.playTransmissionSuccess();
 		terminal3D?.setAlarm(false);
