@@ -60,20 +60,45 @@ casco mesmo quando a transmissão não chega a 100% de proximidade acústica.
 
 ## 🌊 Fases da Campanha
 
-1. **Fase 1: Abisso Inicial (8.000m - 800 ATM)**
-   * Mensagem: `"SOS SOS CASCO EM RISCO"`
-   * Introdução amigável para compreender caracteres repetidos e frequências desbalanceadas.
-   * Margem de tolerância: 25% acima do custo ótimo.
-2. **Fase 2: Zona Hadal (9.500m - 950 ATM)**
-   * Mensagem: `"CASCO RACHANDO. SOM NA PORTA. SOCORRO."`
-   * Tensão crescente. Menor tolerância de ruído para escolhas subótimas.
-   * Margem de tolerância: 15% acima do custo ótimo.
-3. **Fase 3: Fossa das Marianas (11.000m - 1.100 ATM)**
-   * Mensagem: `"PRESSAO CRITICA 8000 ATM. ENTIDADE NA ESCOTILHA. TRANSMITIR AGORA!"`
-   * Desafio extremo contra o tempo e a proximidade da criatura.
-   * Margem de tolerância: 8% acima do custo ótimo.
-4. **Modo Transmissão Livre:**
-   * Permite digitar qualquer mensagem arbitrária, gerando tabelas de frequência em tempo real.
+A cada carregamento, a fase sorteia uma mensagem do seu conjunto, então a árvore
+muda entre tentativas.
+
+| Setor | Profundidade | Margem | Novidade |
+|---|---|---|---|
+| 01 · Abisso Inicial | 8.000m · 800 ATM | 50% | Mensagens curtas com símbolos repetidos |
+| 02 · Zona Hadal | 9.500m · 950 ATM | 35% | Empates de frequência, silêncio e interrupções |
+| 03 · Fossa das Marianas | 11.000m · 1.100 ATM | 25% | Frequências corrompidas (`??`) |
+| 04 · Fenda Tartarus | 12.400m · 1.240 ATM | 18% | Alfabeto maior: números e pontuação |
+| 05 · Núcleo Abissal | 13.900m · 1.390 ATM | 12% | Margem mínima e imitações frequentes |
+
+* **Modo Transmissão Livre:** permite digitar qualquer mensagem arbitrária, gerando tabelas de frequência em tempo real.
+
+### Mecânicas de tensão
+
+* **Frequências corrompidas:** alguns pesos chegam como `??` (e também os dos nós que os contêm). Conte os símbolos na mensagem para deduzir o valor.
+* **Árvores ótimas alternativas:** com empates, a árvore do jogador pode ter formato diferente da referência e o mesmo custo; a tela de vitória explica quando isso acontece.
+* **Vazamento acelerado:** cada fusão que não junta os dois menores pesos aumenta o multiplicador de vazamento da fase.
+* **A criatura reage aos erros:** o primeiro erro guloso faz a entidade bater no casco, o segundo a faz aparecer na escotilha e, a partir do terceiro, ela ataca.
+* **Silêncio obrigatório:** quando o hidrofone detecta contato próximo, qualquer comando durante a contagem gera ruído.
+* **Transmissão interrompida:** um impacto suspende o envio. `[Enter]` continua com ruído dobrado nos próximos bits; `[S]` segura o sinal por alguns segundos ao custo de dano permanente ao casco.
+* **Dano persistente:** o estresse acústico de cada fase reduz a integridade do casco, acelera o vazamento nas fases seguintes e deixa rachaduras na escotilha. Recomeçar do Setor 01 restaura o casco.
+
+### Decodificação e imitações
+
+Após a transmissão, a superfície responde com um fluxo de bits e a árvore usada
+para codificá-lo. Digite cada caractere encontrado percorrendo a árvore (0 =
+esquerda, 1 = direita) ou clique na folha correspondente; erros geram ruído.
+
+Ao final, julgue a resposta com `[A]` (autêntica) ou `[I]` (imitação). A
+superfície sempre usa a árvore gulosa ótima; a entidade imita o sinal com uma
+árvore em que uma folha frequente foi trocada com uma rara e profunda. Confiar
+em uma imitação abre a escotilha.
+
+### Sonificação
+
+Bits `1` e `0` têm timbres diferentes e um sinal curto marca o fim de cada
+símbolo, tanto na transmissão quanto na decodificação. A tela de transmissão
+separa os grupos de bits e mostra o código do símbolo em envio.
 
 A cota segura é calculada por `ceil(custo ótimo × (1 + margem da fase))`.
 Se o custo da árvore montada ultrapassar esse limite, a transmissão termina em
