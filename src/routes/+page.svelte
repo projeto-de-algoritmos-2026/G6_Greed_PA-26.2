@@ -59,8 +59,8 @@
 	let activeMessage = $state(LEVELS[0].message);
 
 	let selectedNodeIds = $state<string[]>([]);
-	let availableNodes = $state<HuffmanNode[]>([]);
-	let allActiveNodes = $state<HuffmanNode[]>([]);
+	let availableNodes = $state.raw<HuffmanNode[]>([]);
+	let allActiveNodes = $state.raw<HuffmanNode[]>([]);
 	let metrics = $state<HuffmanMetrics>({
 		rawAsciiBits: 0,
 		optimalBits: 0,
