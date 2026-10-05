@@ -23,6 +23,9 @@ export class OpeningsManager {
 	private hatchLightLevel: number = 1.0;
 	private hatchFlickerTimer: number = 0;
 	private currentPhase: ScenePhase = 1;
+	// Dano acumulado entre fases (0..1): rachaduras não somem abaixo deste piso
+	// e as luzes externas falham com mais frequência.
+	private persistentDamage: number = 0;
 
 	constructor() {
 		this.group = new THREE.Group();
@@ -228,6 +231,14 @@ export class OpeningsManager {
 		}
 	}
 
+	public setPersistentDamage(level: number): void {
+		this.persistentDamage = Math.max(0, Math.min(1, level));
+		this.impactOpacity = Math.max(this.impactOpacity, this.persistentDamage * 0.7);
+		this.scratchOpacity = Math.max(this.scratchOpacity, this.persistentDamage * 0.5);
+		this.impactDecalMat.opacity = this.impactOpacity;
+		this.scratchDecalMat.opacity = this.scratchOpacity;
+	}
+
 	public getFrame(_id?: OpeningId): OpeningFrame {
 		return this.hatchFrame;
 	}
@@ -278,13 +289,21 @@ export class OpeningsManager {
 
 	public update(delta: number, elapsedTime: number): void {
 
-		if (this.impactOpacity > 0.001) {
-			this.impactOpacity = Math.max(0, this.impactOpacity - delta * 0.075);
+		const impactFloor = this.persistentDamage * 0.7;
+		const scratchFloor = this.persistentDamage * 0.5;
+		if (this.impactOpacity > impactFloor + 0.001) {
+			this.impactOpacity = Math.max(impactFloor, this.impactOpacity - delta * 0.075);
 			this.impactDecalMat.opacity = this.impactOpacity;
 		}
-		if (this.scratchOpacity > 0.001) {
-			this.scratchOpacity = Math.max(0, this.scratchOpacity - delta * 0.065);
+		if (this.scratchOpacity > scratchFloor + 0.001) {
+			this.scratchOpacity = Math.max(scratchFloor, this.scratchOpacity - delta * 0.065);
 			this.scratchDecalMat.opacity = this.scratchOpacity;
+		}
+
+		if (this.hatchFlickerTimer <= 0 && this.persistentDamage > 0.3) {
+			if (Math.random() < delta * this.persistentDamage * 0.2) {
+				this.hatchFlickerTimer = 0.15 + Math.random() * 0.35;
+			}
 		}
 
 		if (this.hatchFlickerTimer > 0) {

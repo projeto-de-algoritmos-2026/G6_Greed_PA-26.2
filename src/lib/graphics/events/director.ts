@@ -29,6 +29,9 @@ import { MawPressActor } from '../creatures/mawPress';
 
 const _dirCamDir = new THREE.Vector3();
 
+const TIER2_STALKERS: readonly WindowEventType[] = ['LURKING_PREDATOR', 'COLOSSAL_EYE', 'DEAD_DIVER'];
+const TIER3_ATTACKS: readonly WindowEventType[] = ['CLAW_SCRAPE', 'QUARTZ_IMPACT', 'MAW_PRESS', 'TENTACLE_INSPECTION'];
+
 export class EventDirector {
 	private actors: Map<WindowEventType, WindowEventActor> = new Map();
 	private activeActor: WindowEventActor | null = null;
@@ -38,6 +41,7 @@ export class EventDirector {
 	private currentProximity: number = 0;
 	private currentPhase: ScenePhase = 1;
 	private jumpscaresInPhase: number = 0;
+	private badMergesInLevel: number = 0;
 
 	private openings: OpeningsManager;
 	private camera: THREE.PerspectiveCamera;
@@ -93,19 +97,34 @@ export class EventDirector {
 	}
 
 	public notifyPlayerAction(action: PlayerActionType): void {
-		if (action === 'BAD_MERGE') {
-
-			if (!this.activeActor && this.currentProximity > 50 && Math.random() < 0.15) {
-				const tier3Pool: WindowEventType[] = ['CLAW_SCRAPE', 'QUARTZ_IMPACT', 'MAW_PRESS'];
-				const chosen = tier3Pool[Math.floor(Math.random() * tier3Pool.length)];
-				this.triggerEvent(chosen);
-			} else {
+		if (action === 'LEVEL_LOAD') {
+			this.badMergesInLevel = 0;
+		} else if (action === 'BAD_MERGE') {
+			// A criatura escala a cada erro guloso: primeiro só bate no casco,
+			// depois aparece na janela e, a partir do terceiro erro, ataca.
+			this.badMergesInLevel++;
+			if (this.activeActor || this.badMergesInLevel === 1) {
 				this.audio?.playHullKnock(this.calculatePan('hatch'));
+			} else if (this.badMergesInLevel === 2) {
+				this.triggerFromPool(TIER2_STALKERS);
+			} else {
+				this.triggerFromPool(TIER3_ATTACKS);
 			}
+		} else if (action === 'SILENCE_BROKEN') {
+			this.audio?.playHullKnock(this.calculatePan('hatch'));
+			if (!this.activeActor) this.triggerFromPool(TIER2_STALKERS);
+		} else if (action === 'TRANSMIT_INTERRUPTED') {
+			this.triggerFromPool(['CLAW_SCRAPE', 'QUARTZ_IMPACT'], true);
+		} else if (action === 'MIMIC_TRUSTED') {
+			this.triggerFromPool(['MAW_PRESS'], true);
 		} else if (action === 'UNDO' || action === 'RESET') {
-
 			this.audio?.playHullCreak();
 		}
+	}
+
+	private triggerFromPool(pool: readonly WindowEventType[], force: boolean = false): void {
+		if (this.activeActor && !force) return;
+		this.triggerEvent(pool[Math.floor(Math.random() * pool.length)]);
 	}
 
 	public triggerEvent(forcedType?: WindowEventType): void {
