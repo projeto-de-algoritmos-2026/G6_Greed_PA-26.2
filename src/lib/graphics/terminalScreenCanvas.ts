@@ -374,6 +374,8 @@ export class TerminalScreenCanvas {
 		const scale = Math.min(nw / 48, nh / 38);
 		const labelSize = Math.max(9, Math.round(14 * scale));
 		const weightSize = Math.max(8, Math.round(10 * scale));
+		ctx.textAlign = 'center';
+
 		// 1. Linhas de ramificação em fósforo verde
 		for (const parent of nodes) {
 			if (!parent.isLeaf && parent.left && parent.right) {
