@@ -405,8 +405,8 @@ export class TerminalScreenCanvas {
 			const { x: nx, y: ny } = pos(node);
 			const isSelected = state.selectedNodeIds.includes(node.id);
 			const isAvailable = availableIds.has(node.id);
-			const labelY = ny - 3;
-			const weightY = ny + 12;
+			const labelY = ny - nh * 0.08;
+			const weightY = ny + nh * 0.32;
 
 			if (isSelected) {
 				// Realce por inversão de fósforo brilhante
@@ -505,8 +505,13 @@ export class TerminalScreenCanvas {
 		const slotW = Math.min(90, areaWidth / totalLeaves);
 		const nodeW = 48;
 
-		const nodeH = 38;
-		const levelGap = 65;
+		let nodeH = 38;
+		let levelGap = maxHeight > 0 ? (areaHeight - nodeH) / maxHeight : 0;
+		if (maxHeight > 0 && levelGap < nodeH + 6) {
+			nodeH = Math.max(18, levelGap - 6);
+			levelGap = (areaHeight - nodeH) / maxHeight;
+		}
+		levelGap = Math.min(72, levelGap);
 
 		const bottomY = top + areaHeight - nodeH / 2;
 		const place = (node: HuffmanNode, startX: number): number => {
