@@ -17,8 +17,8 @@
 	let activeMessage = $state(LEVELS[0].message);
 
 	let selectedNodeIds = $state<string[]>([]);
-	let availableNodes = $state<HuffmanNode[]>([]);
-	let allActiveNodes = $state<HuffmanNode[]>([]);
+	let availableNodes = $state.raw<HuffmanNode[]>([]);
+	let allActiveNodes = $state.raw<HuffmanNode[]>([]);
 	let metrics = $state<HuffmanMetrics>({
 		rawAsciiBits: 0,
 		optimalBits: 0,
@@ -348,7 +348,10 @@
 		terminal3D?.notifyPlayerAction('TRANSMIT_START');
 		refreshState();
 
-		const bitIntervalMs = 110;
+		const transmissionIntervalMs = 110;
+		// Cada fase define quantos bits podem ser transmitidos com segurança.
+		// Dentro da cota o ruído é proporcional ao uso dela; acima, o excesso
+		// gera penalidade extra e a árvore é rejeitada ao final da transmissão.
 		const isWithinQuota = fullBitStream.length <= safeBitQuota;
 		const baseTransmissionNoise = 18.0;
 		const excessBits = Math.max(0, fullBitStream.length - safeBitQuota);
@@ -377,12 +380,21 @@
 			if (acousticProximity >= 100) {
 				triggerGameOver();
 			}
-		}, bitIntervalMs);
+		}, transmissionIntervalMs);
 	}
 
 	function completeTransmissionVictory(): void {
 		if (transmissionTimer) clearInterval(transmissionTimer);
+		transmissionTimer = null;
 		isTransmitting = false;
+
+		// A cota é a regra de sobrevivência da fase: transmitir uma árvore
+		// completa, mas acima da margem permitida, ainda causa o colapso.
+		if (metrics.playerBits > safeBitQuota) {
+			triggerGameOver();
+			return;
+		}
+
 		isVictory = true;
 		audio.playTransmissionSuccess();
 		terminal3D?.setAlarm(false);
@@ -392,6 +404,7 @@
 
 	function triggerGameOver(): void {
 		if (transmissionTimer) clearInterval(transmissionTimer);
+		transmissionTimer = null;
 		isTransmitting = false;
 		isGameOver = true;
 		audio.playCatastrophicBreach();

@@ -348,16 +348,28 @@ export class TerminalScreenCanvas {
 		ctx.textAlign = 'left';
 		ctx.fillText('DIAGRAMA BINÁRIO (SELECIONE 2 NÓS)', tx + 14, ty + 22);
 
-		this.layoutNodes(state.allActiveNodes, tx + tw / 2, ty + th - 60, tw - 40, th - 80);
+		// Layout dos nós (as raízes da floresta são os nós ainda disponíveis).
+		// As posições ficam num mapa local indexado por id: os nós chegam do Svelte
+		// como proxies de $state, e gravar x/y neles não se propaga entre cópias.
+		const { nodes, positions, nodeW: nw, nodeH: nh } = this.layoutNodes(
+			state.availableNodes,
+			tx + 20,
+			ty + 36,
+			tw - 40,
+			th - 48
+		);
+		const pos = (node: HuffmanNode) => positions.get(node.id)!;
+		const availableIds = new Set(state.availableNodes.map((n) => n.id));
+		const scale = Math.min(nw / 48, nh / 38);
+		const labelSize = Math.max(9, Math.round(14 * scale));
+		const weightSize = Math.max(8, Math.round(10 * scale));
+		ctx.textAlign = 'center';
 
-		for (const parent of state.allActiveNodes) {
+		for (const parent of nodes) {
 			if (!parent.isLeaf && parent.left && parent.right) {
-				const px = parent.x ?? 0;
-				const py = parent.y ?? 0;
-				const lx = parent.left.x ?? 0;
-				const ly = parent.left.y ?? 0;
-				const rx = parent.right.x ?? 0;
-				const ry = parent.right.y ?? 0;
+				const { x: px, y: py } = pos(parent);
+				const { x: lx, y: ly } = pos(parent.left);
+				const { x: rx, y: ry } = pos(parent.right);
 
 				ctx.strokeStyle = 'rgba(0, 255, 170, 0.6)';
 				ctx.lineWidth = 1.5;
@@ -367,7 +379,7 @@ export class TerminalScreenCanvas {
 				ctx.stroke();
 
 				ctx.fillStyle = 'rgba(0, 255, 170, 0.9)';
-				ctx.font = 'bold 11px "Courier New", monospace';
+				ctx.font = `bold ${Math.max(8, Math.round(11 * scale))}px "Courier New", monospace`;
 				ctx.fillText('0', (px + lx) / 2 - 8, (py + ly) / 2);
 
 				ctx.beginPath();
@@ -379,14 +391,12 @@ export class TerminalScreenCanvas {
 			}
 		}
 
-		for (const node of state.allActiveNodes) {
-			const nx = node.x ?? 0;
-			const ny = node.y ?? 0;
+		for (const node of nodes) {
+			const { x: nx, y: ny } = pos(node);
 			const isSelected = state.selectedNodeIds.includes(node.id);
-			const isAvailable = state.availableNodes.some((n) => n.id === node.id);
-
-			const nw = 48;
-			const nh = 38;
+			const isAvailable = availableIds.has(node.id);
+			const labelY = ny - nh * 0.08;
+			const weightY = ny + nh * 0.32;
 
 			if (isSelected) {
 
@@ -398,12 +408,12 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = '#010d08';
-				ctx.font = 'bold 14px "Courier New", monospace';
+				ctx.font = `bold ${labelSize}px "Courier New", monospace`;
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, ny - 3);
+				ctx.fillText(label ?? '', nx, labelY);
 
-				ctx.font = 'bold 10px "Courier New", monospace';
-				ctx.fillText(`${node.weight}`, nx, ny + 12);
+				ctx.font = `bold ${weightSize}px "Courier New", monospace`;
+				ctx.fillText(`${node.weight}`, nx, weightY);
 			} else {
 
 				ctx.fillStyle = isAvailable ? '#012015' : '#01120c';
@@ -414,13 +424,13 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = isAvailable ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
-				ctx.font = 'bold 13px "Courier New", monospace';
+				ctx.font = `bold ${Math.max(9, labelSize - 1)}px "Courier New", monospace`;
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, ny - 3);
+				ctx.fillText(label ?? '', nx, labelY);
 
-				ctx.font = '10px "Courier New", monospace';
+				ctx.font = `${weightSize}px "Courier New", monospace`;
 				ctx.fillStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.4)';
-				ctx.fillText(`${node.weight}`, nx, ny + 12);
+				ctx.fillText(`${node.weight}`, nx, weightY);
 			}
 
 			if (isAvailable) {
@@ -437,35 +447,83 @@ export class TerminalScreenCanvas {
 		}
 	}
 
+	/**
+	 * Posiciona a floresta de subárvores de baixo para cima: cada folha recebe uma
+	 * fatia horizontal própria (subárvores ocupam fatias contíguas proporcionais ao
+	 * número de folhas) e cada nó interno fica acima do filho mais alto. Os tamanhos
+	 * dos nós encolhem para que a floresta inteira caiba na área, sem sobreposição.
+	 */
 	private layoutNodes(
-		allNodes: HuffmanNode[],
-		centerX: number,
-		bottomY: number,
+		roots: HuffmanNode[],
+		left: number,
+		top: number,
 		areaWidth: number,
 		areaHeight: number
-	): void {
-		const leaves = allNodes.filter((n) => n.isLeaf);
-		const totalLeaves = leaves.length;
-		const stepX = totalLeaves > 1 ? areaWidth / (totalLeaves - 1) : 0;
-		const startX = centerX - areaWidth / 2;
+	): {
+		nodes: HuffmanNode[];
+		positions: Map<string, { x: number; y: number }>;
+		nodeW: number;
+		nodeH: number;
+	} {
+		const nodes: HuffmanNode[] = [];
+		const positions = new Map<string, { x: number; y: number }>();
+		const heights = new Map<string, number>();
+		const leafCounts = new Map<string, number>();
 
-		leaves.forEach((leaf, idx) => {
-			leaf.x = totalLeaves === 1 ? centerX : startX + idx * stepX;
-			leaf.y = bottomY;
-		});
-
-		const internalNodes = allNodes.filter((n) => !n.isLeaf);
-		for (const node of internalNodes) {
-			if (node.left && node.right) {
-				const lx = node.left.x ?? centerX;
-				const rx = node.right.x ?? centerX;
-				const ly = node.left.y ?? bottomY;
-				const ry = node.right.y ?? bottomY;
-
-				node.x = (lx + rx) / 2;
-				node.y = Math.max(90, Math.min(ly, ry) - 65);
+		const measure = (node: HuffmanNode): void => {
+			nodes.push(node);
+			if (!node.isLeaf && node.left && node.right) {
+				measure(node.left);
+				measure(node.right);
+				heights.set(node.id, 1 + Math.max(heights.get(node.left.id)!, heights.get(node.right.id)!));
+				leafCounts.set(node.id, leafCounts.get(node.left.id)! + leafCounts.get(node.right.id)!);
+			} else {
+				heights.set(node.id, 0);
+				leafCounts.set(node.id, 1);
 			}
+		};
+
+		let totalLeaves = 0;
+		let maxHeight = 0;
+		for (const root of roots) {
+			measure(root);
+			maxHeight = Math.max(maxHeight, heights.get(root.id)!);
+			totalLeaves += leafCounts.get(root.id)!;
 		}
+		if (totalLeaves === 0) return { nodes, positions, nodeW: 48, nodeH: 38 };
+
+		const slotW = Math.min(90, areaWidth / totalLeaves);
+		const nodeW = Math.max(16, Math.min(48, slotW - 4));
+
+		let nodeH = 38;
+		let levelGap = maxHeight > 0 ? (areaHeight - nodeH) / maxHeight : 0;
+		if (maxHeight > 0 && levelGap < nodeH + 6) {
+			nodeH = Math.max(18, levelGap - 6);
+			levelGap = (areaHeight - nodeH) / maxHeight;
+		}
+		levelGap = Math.min(72, levelGap);
+
+		const bottomY = top + areaHeight - nodeH / 2;
+		const place = (node: HuffmanNode, startX: number): number => {
+			let x: number;
+			if (!node.isLeaf && node.left && node.right) {
+				const lx = place(node.left, startX);
+				const rx = place(node.right, startX + leafCounts.get(node.left.id)! * slotW);
+				x = (lx + rx) / 2;
+			} else {
+				x = startX + slotW / 2;
+			}
+			positions.set(node.id, { x, y: bottomY - heights.get(node.id)! * levelGap });
+			return x;
+		};
+
+		let cursor = left + (areaWidth - totalLeaves * slotW) / 2;
+		for (const root of roots) {
+			place(root, cursor);
+			cursor += leafCounts.get(root.id)! * slotW;
+		}
+
+		return { nodes, positions, nodeW, nodeH };
 	}
 
 	private renderBottomControls(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
