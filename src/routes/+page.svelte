@@ -1,61 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { HuffmanEngine, type HuffmanMetrics, type HuffmanNode } from '$lib/engine/huffman';
-	import { ProceduralAudioEngine } from '$lib/audio/soundscape';
-	import { Terminal3DManager } from '$lib/graphics/terminal3d';
+	import { HuffmanEngine, LEVELS, type HuffmanMetrics, type HuffmanNode } from '$lib/engine';
+	import { ProceduralAudioEngine } from '$lib/audio';
+	import { Terminal3DManager, type CabinFocusTarget } from '$lib/graphics/terminal3d';
 
-	// Configuração das Fases da Campanha
-	interface LevelConfig {
-		depth: number;
-		pressureAtm: number;
-		name: string;
-		message: string;
-		description: string;
-		toleranceMargin: number;
-		baseLeakRate: number;
-	}
-
-	const LEVELS: LevelConfig[] = [
-		{
-			depth: 8000,
-			pressureAtm: 800,
-			name: 'ABISSO INICIAL',
-			message: 'SOS SOS CASCO EM RISCO',
-			description: 'Entrada na fenda abissal. Construa a árvore de prefixos com caracteres repetidos.',
-			toleranceMargin: 0.25,
-			baseLeakRate: 0.35
-		},
-		{
-			depth: 9500,
-			pressureAtm: 950,
-			name: 'ZONA HADAL',
-			message: 'CASCO RACHANDO. SOM NA PORTA. SOCORRO.',
-			description: 'Pressão violenta. Menor margem para nós subótimos. A entidade está rondando.',
-			toleranceMargin: 0.15,
-			baseLeakRate: 0.55
-		},
-		{
-			depth: 11000,
-			pressureAtm: 1100,
-			name: 'FOSSA DAS MARIANAS',
-			message: 'PRESSAO CRITICA 8000 ATM. ENTIDADE NA ESCOTILHA. TRANSMITIR AGORA!',
-			description: 'Desafio extremo. Qualquer desvio da árvore gulosa ótima causará colapso imediato.',
-			toleranceMargin: 0.08,
-			baseLeakRate: 0.75
-		}
-	];
-
-	// Instâncias dos subsistemas
 	let huffman = new HuffmanEngine();
 	let audio = new ProceduralAudioEngine();
 	let terminal3D: Terminal3DManager | null = null;
 	let canvasElement: HTMLCanvasElement;
 	let terminalContainer: HTMLElement;
 
-	// Estados Reativos do Jogo
 	let currentLevelIndex = $state(0);
 	let isFreeMode = $state(false);
-	let customMessage = $state('ALERTA NA ESTACAO SUBMARINA');
+	let customMessage = $state('ALERTA SUBMARINO');
 	let activeMessage = $state(LEVELS[0].message);
 
 	let selectedNodeIds = $state<string[]>([]);
@@ -89,7 +46,7 @@
 	let currentLevel = $derived(isFreeMode ? null : LEVELS[currentLevelIndex]);
 	let safeBitQuota = $derived(
 		metrics.optimalBits > 0
-			? Math.ceil(metrics.optimalBits * (1 + (currentLevel?.toleranceMargin ?? 0.15)))
+			? Math.ceil(metrics.optimalBits * (1 + (currentLevel?.toleranceMargin ?? 0.35)))
 			: 0
 	);
 
@@ -98,7 +55,6 @@
 			terminal3D = new Terminal3DManager(terminalContainer, canvasElement);
 			terminal3D.setAudioEngine(audio);
 
-			// Conecta ações disparadas ao clicar na tela do monitor principal 3D
 			terminal3D.onScreenAction((action) => {
 				activateAudio();
 				if (action.type === 'SELECT_NODE' && action.nodeId) {
@@ -118,7 +74,6 @@
 				}
 			});
 
-			// Conecta ações disparadas no monitor secundário auxiliar (Console B à direita)
 			terminal3D.onAuxAction((action) => {
 				activateAudio();
 				if (action.type === 'SELECT_LEVEL') {
@@ -143,7 +98,6 @@
 				}
 			});
 
-			// Mantém o estado da UI sincronizado quando a câmera foca ou reconfigura a visão
 			terminal3D.onFocusChange((target) => {
 				focusedScreen = target;
 				isZoomedIn = target === 'main';
@@ -153,18 +107,16 @@
 
 		loadCurrentLevel();
 
-		// Ativa o áudio no primeiro clique em qualquer lugar da tela
 		window.addEventListener('pointerdown', () => activateAudio(), { once: true });
 
-		// Tensão contínua da criatura
 		tensionInterval = window.setInterval(() => {
 			if (!isTransmitting && !isGameOver && !isVictory && isAudioStarted) {
-				const leak = currentLevel?.baseLeakRate ?? 0.45;
+				const leak = currentLevel?.baseLeakRate ?? 0.1;
 				increaseProximity(leak * 0.5);
 
-				if (acousticProximity > 50 && Math.random() < 0.15) {
+				if (acousticProximity > 65 && Math.random() < 0.1) {
 					audio.playHullCreak();
-					terminal3D?.triggerCameraShake(0.18);
+					terminal3D?.triggerCameraShake(0.12);
 				}
 			}
 		}, 500);
@@ -197,6 +149,9 @@
 		transmittedBits = '';
 		fullBitStream = '';
 
+		terminal3D?.setPhase(isFreeMode ? 1 : ((currentLevelIndex + 1) as 1 | 2 | 3));
+		terminal3D?.notifyPlayerAction('LEVEL_LOAD');
+
 		huffman.loadMessage(text);
 		refreshState();
 	}
@@ -219,7 +174,6 @@
 		isTreeComplete = huffman.isTreeComplete();
 		metrics = huffman.getMetrics();
 
-		// Sincroniza a tela do Monitor CRT 3D
 		syncScreenTexture();
 		terminal3D?.updateGauges(currentLevel?.pressureAtm ?? 800, acousticProximity);
 
@@ -316,10 +270,13 @@
 			huffman.mergeNodes(idA, idB);
 			selectedNodeIds = [];
 			audio.playMergeSound(isGreedy);
-			terminal3D?.triggerCameraShake(isGreedy ? 0.05 : 0.22);
+			terminal3D?.triggerCameraShake(isGreedy ? 0.04 : 0.14);
 
 			if (!isGreedy) {
-				increaseProximity(6.0);
+				increaseProximity(2.0);
+				terminal3D?.notifyPlayerAction('BAD_MERGE');
+			} else {
+				terminal3D?.notifyPlayerAction('GOOD_MERGE');
 			}
 
 			refreshState();
@@ -334,8 +291,9 @@
 		if (undone) {
 			selectedNodeIds = [];
 			audio.playUndoSound();
-			terminal3D?.triggerCameraShake(0.12);
-			increaseProximity(5.0);
+			terminal3D?.triggerCameraShake(0.06);
+			increaseProximity(1.0);
+			terminal3D?.notifyPlayerAction('UNDO');
 			refreshState();
 		}
 	}
@@ -346,8 +304,9 @@
 		selectedNodeIds = [];
 		audio.playUndoSound();
 		audio.playHullCreak();
-		terminal3D?.triggerCameraShake(0.2);
-		increaseProximity(12.0);
+		terminal3D?.triggerCameraShake(0.12);
+		increaseProximity(3.0);
+		terminal3D?.notifyPlayerAction('RESET');
 		refreshState();
 	}
 
@@ -376,10 +335,18 @@
 		isTransmitting = true;
 		currentBitIndex = 0;
 		transmittedBits = '';
+		terminal3D?.notifyPlayerAction('TRANSMIT_START');
 		refreshState();
 
 		const bitIntervalMs = 110;
-		const noisePerBit = 85.0 / fullBitStream.length;
+		const isWithinQuota = fullBitStream.length <= safeBitQuota;
+		const baseTransmissionNoise = 18.0;
+		const excessBits = Math.max(0, fullBitStream.length - safeBitQuota);
+		const excessPenalty = (excessBits / Math.max(1, metrics.optimalBits)) * 40.0;
+		const totalTransmissionNoise = isWithinQuota
+			? baseTransmissionNoise * (fullBitStream.length / Math.max(1, safeBitQuota))
+			: baseTransmissionNoise + excessPenalty;
+		const noisePerBit = totalTransmissionNoise / fullBitStream.length;
 
 		transmissionTimer = window.setInterval(() => {
 			if (currentBitIndex >= fullBitStream.length) {
@@ -393,6 +360,7 @@
 
 			audio.playSonarPing(bit === '1');
 			terminal3D?.triggerCameraShake(0.04);
+			terminal3D?.notifyPlayerAction('TRANSMIT_BIT');
 			increaseProximity(noisePerBit);
 			syncScreenTexture();
 
@@ -408,6 +376,7 @@
 		isVictory = true;
 		audio.playTransmissionSuccess();
 		terminal3D?.setAlarm(false);
+		terminal3D?.notifyPlayerAction('VICTORY');
 		refreshState();
 	}
 
@@ -418,6 +387,7 @@
 		audio.playCatastrophicBreach();
 		terminal3D?.triggerCameraShake(0.95);
 		terminal3D?.setAlarm(true);
+		terminal3D?.notifyPlayerAction('GAME_OVER');
 		refreshState();
 	}
 
@@ -431,7 +401,7 @@
 		}
 	}
 
-	let focusedScreen = $state<'main' | 'aux' | 'manual' | 'window' | 'poster' | 'none'>('none');
+	let focusedScreen = $state<CabinFocusTarget>('none');
 
 	function focusMonitor(): void {
 		terminal3D?.focusMonitor();
@@ -510,16 +480,33 @@
 			else focusPoster();
 		} else if (e.key === 'l' || e.key === 'L') {
 			terminal3D?.toggleInspectionLight();
+		} else if (e.key === 'Escape') {
+			if (focusedScreen !== 'none') resetCabinView();
 		}
 	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<!-- Container da Cabine do Submarino -->
 <main class="relative w-screen h-screen overflow-hidden bg-black text-[#00ffaa] font-mono select-none">
-	<!-- Canvas 3D (Cobre a janela inteira - renderiza a cabine, mesa, vigia e os DOIS monitores CRT com todo o HUD integrado) -->
 	<div class="absolute inset-0 w-full h-full" bind:this={terminalContainer}>
 		<canvas bind:this={canvasElement} class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
 	</div>
+
+	{#if focusedScreen === 'window'}
+		<div class="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/80 border border-[#00ffcc]/40 rounded text-xs text-[#00ffcc] tracking-widest pointer-events-none flex items-center gap-3 backdrop-blur-sm shadow-lg shadow-[#003322]/50 animate-fade-in">
+			<span class="inline-block w-2 h-2 rounded-full bg-[#00ffcc] animate-ping"></span>
+			<span>JANELA // [W] OU [ESC] VOLTAR</span>
+		</div>
+	{:else if focusedScreen === 'poster'}
+		<div class="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/80 border border-[#00ffcc]/40 rounded text-xs text-[#00ffcc] tracking-widest pointer-events-none flex items-center gap-3 backdrop-blur-sm shadow-lg shadow-[#003322]/50 animate-fade-in">
+			<span class="inline-block w-2 h-2 rounded-full bg-[#00ffcc] animate-ping"></span>
+			<span>PÔSTER // [P] OU [ESC] VOLTAR</span>
+		</div>
+	{:else if focusedScreen === 'manual'}
+		<div class="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/80 border border-[#00ffcc]/40 rounded text-xs text-[#00ffcc] tracking-widest pointer-events-none flex items-center gap-3 backdrop-blur-sm shadow-lg shadow-[#003322]/50 animate-fade-in">
+			<span class="inline-block w-2 h-2 rounded-full bg-[#00ffcc] animate-ping"></span>
+			<span>MANUAL // [H] OU [ESC] VOLTAR</span>
+		</div>
+	{/if}
 </main>
