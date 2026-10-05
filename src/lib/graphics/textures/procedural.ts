@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { WindowEventType, ScratchCreatureType } from '../types';
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 
@@ -353,37 +354,852 @@ export function createImpactTexture(): THREE.CanvasTexture {
 	return tex;
 }
 
-export function createScratchTexture(): THREE.CanvasTexture {
-	const canvas = document.createElement('canvas');
-	canvas.width = 512;
-	canvas.height = 512;
-	const ctx = canvas.getContext('2d')!;
-	ctx.clearRect(0, 0, 512, 512);
+export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_claw_scrape', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
 
-	const clawOffsets = [-85, -30, 25, 80];
-	for (const ox of clawOffsets) {
-		ctx.beginPath();
-		ctx.moveTo(256 + ox, 30);
-		let curY = 30;
-		let curX = 256 + ox;
-		while (curY < 480) {
-			curY += 18 + Math.random() * 22;
-			curX += (Math.random() - 0.5) * 14;
-			ctx.lineTo(curX, curY);
+		// 4 deep vertical sickle claw gouges
+		const clawOffsets = [-85, -28, 28, 85];
+		for (let i = 0; i < clawOffsets.length; i++) {
+			const ox = clawOffsets[i];
+			const isCenter = i === 1 || i === 2;
+
+			const points: Array<{ x: number; y: number }> = [];
+			let curY = 32 + (i % 2) * 18;
+			let curX = 256 + ox;
+			points.push({ x: curX, y: curY });
+
+			while (curY < 480 - (i % 2) * 16) {
+				curY += 12 + Math.random() * 20;
+				const stickSlip = Math.random() < 0.25 ? (Math.random() - 0.5) * 16 : 0;
+				curX += (Math.random() - 0.5) * 8 + stickSlip;
+				points.push({ x: curX, y: curY });
+			}
+
+			// Pass 1: Broad friction energy halo
+			ctx.beginPath();
+			ctx.moveTo(points[0].x, points[0].y);
+			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
+			ctx.strokeStyle = isCenter ? 'rgba(0, 240, 180, 0.38)' : 'rgba(0, 210, 160, 0.25)';
+			ctx.lineWidth = isCenter ? 24 : 18;
+			ctx.lineCap = 'round';
+			ctx.lineJoin = 'round';
+			ctx.stroke();
+
+			// Pass 2: Crushed silica trench
+			ctx.beginPath();
+			ctx.moveTo(points[0].x, points[0].y);
+			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
+			ctx.strokeStyle = 'rgba(100, 230, 255, 0.65)';
+			ctx.lineWidth = isCenter ? 9 : 6;
+			ctx.stroke();
+
+			// Pass 3: White-hot gouge core
+			ctx.beginPath();
+			ctx.moveTo(points[0].x, points[0].y);
+			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
+			ctx.strokeStyle = 'rgba(245, 255, 255, 0.98)';
+			ctx.lineWidth = isCenter ? 3.5 : 2.5;
+			ctx.stroke();
+
+			// Lateral micro-splinters along the trench walls
+			ctx.strokeStyle = 'rgba(210, 250, 255, 0.75)';
+			ctx.lineWidth = 1.5;
+			for (let p = 2; p < points.length - 2; p += 2) {
+				if (Math.random() < 0.65) {
+					const pt = points[p];
+					const angle = (Math.random() < 0.5 ? 0.6 : -0.6) + (Math.random() - 0.5) * 0.3;
+					const len = 6 + Math.random() * 14;
+					ctx.beginPath();
+					ctx.moveTo(pt.x, pt.y);
+					ctx.lineTo(pt.x + Math.sin(angle) * len, pt.y + Math.cos(angle) * len);
+					ctx.stroke();
+				}
+			}
+
+			// Spall release chips at bottom
+			const endPt = points[points.length - 1];
+			for (let c = 0; c < 5; c++) {
+				const cx = endPt.x + (Math.random() - 0.5) * 22;
+				const cy = endPt.y + Math.random() * 14;
+				ctx.fillStyle = 'rgba(240, 255, 255, 0.9)';
+				ctx.beginPath();
+				ctx.arc(cx, cy, 1.2 + Math.random() * 1.8, 0, Math.PI * 2);
+				ctx.fill();
+			}
 		}
 
-		ctx.strokeStyle = 'rgba(235, 255, 250, 0.95)';
-		ctx.lineWidth = 4;
+		return canvas;
+	});
+}
+
+export function createMawPressScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_maw_press', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const cx = 256;
+		const cy = 256;
+
+		// 1. Wet mouth rim condensation haze (fleshy lips pressed against glass)
+		const rimGrad = ctx.createRadialGradient(cx, cy, 140, cx, cy, 240);
+		rimGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+		rimGrad.addColorStop(0.5, 'rgba(60, 220, 200, 0.18)');
+		rimGrad.addColorStop(0.75, 'rgba(180, 40, 75, 0.22)');
+		rimGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+		ctx.fillStyle = rimGrad;
+		ctx.beginPath();
+		ctx.arc(cx, cy, 240, 0, Math.PI * 2);
+		ctx.fill();
+
+		// 2. Upper and lower dental arches with conical fang punctures & sliding grind marks
+		const drawJawArch = (arcCy: number, radiusX: number, radiusY: number, startA: number, endA: number, isUpper: boolean) => {
+			const teethCount = 13;
+			for (let i = 0; i < teethCount; i++) {
+				const t = i / (teethCount - 1);
+				const angle = startA + t * (endA - startA);
+				const px = cx + Math.cos(angle) * radiusX;
+				const py = arcCy + Math.sin(angle) * radiusY;
+
+				const isCanine = i === 1 || i === teethCount - 2 || i === 0 || i === teethCount - 1;
+				const dragLen = isCanine ? (28 + Math.random() * 20) : (14 + Math.random() * 15);
+				const dragDirY = isUpper ? 1 : -1;
+				const dragDirX = (cx - px) * 0.15;
+
+				// Halo
+				ctx.strokeStyle = isCanine ? 'rgba(0, 255, 190, 0.45)' : 'rgba(120, 240, 220, 0.3)';
+				ctx.lineWidth = isCanine ? 18 : 10;
+				ctx.lineCap = 'round';
+				ctx.beginPath();
+				ctx.moveTo(px, py);
+				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
+				ctx.stroke();
+
+				// Tooth scratch groove
+				ctx.strokeStyle = 'rgba(210, 255, 245, 0.85)';
+				ctx.lineWidth = isCanine ? 6 : 4;
+				ctx.beginPath();
+				ctx.moveTo(px, py);
+				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
+				ctx.stroke();
+
+				// Sharp enamel contact core
+				ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+				ctx.lineWidth = isCanine ? 2.5 : 1.8;
+				ctx.beginPath();
+				ctx.moveTo(px, py);
+				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
+				ctx.stroke();
+
+				// Puncture crater at initial bite contact
+				ctx.fillStyle = 'rgba(255, 255, 245, 0.98)';
+				ctx.beginPath();
+				ctx.arc(px, py, isCanine ? 3.8 : 2.4, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Micro star-fractures on canines
+				if (isCanine) {
+					ctx.strokeStyle = 'rgba(200, 250, 255, 0.8)';
+					ctx.lineWidth = 1.2;
+					for (let k = 0; k < 4; k++) {
+						const fa = (k * Math.PI) / 2 + (Math.random() - 0.5) * 0.4;
+						const flen = 6 + Math.random() * 10;
+						ctx.beginPath();
+						ctx.moveTo(px, py);
+						ctx.lineTo(px + Math.cos(fa) * flen, py + Math.sin(fa) * flen);
+						ctx.stroke();
+					}
+				}
+			}
+		};
+
+		drawJawArch(195, 185, 90, Math.PI * 1.1, Math.PI * 1.9, true);
+		drawJawArch(315, 175, 85, Math.PI * 0.1, Math.PI * 0.9, false);
+
+		// Frothy organic saliva/mucus specks between jaws
+		for (let s = 0; s < 45; s++) {
+			const sx = cx + (Math.random() - 0.5) * 320;
+			const sy = cy + (Math.random() - 0.5) * 160;
+			const sr = 1.0 + Math.random() * 2.8;
+			ctx.fillStyle = Math.random() < 0.6 ? 'rgba(100, 240, 210, 0.35)' : 'rgba(200, 50, 80, 0.28)';
+			ctx.beginPath();
+			ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		return canvas;
+	});
+}
+
+export function createTentacleScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_tentacle', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		// S-curve trajectory of tentacle crawl across the pane
+		const pathPoints = [
+			{ x: 70, y: 440, r: 34 },
+			{ x: 130, y: 360, r: 31 },
+			{ x: 200, y: 300, r: 28 },
+			{ x: 260, y: 245, r: 24 },
+			{ x: 310, y: 200, r: 21 },
+			{ x: 360, y: 155, r: 18 },
+			{ x: 410, y: 110, r: 15 },
+			{ x: 450, y: 65, r: 12 }
+		];
+
+		// 1. Broad translucent slimy mucus trail
+		ctx.beginPath();
+		ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+		for (let i = 1; i < pathPoints.length; i++) {
+			ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+		}
+		ctx.strokeStyle = 'rgba(40, 210, 180, 0.22)';
+		ctx.lineWidth = 65;
+		ctx.lineCap = 'round';
+		ctx.lineJoin = 'round';
 		ctx.stroke();
 
-		ctx.strokeStyle = 'rgba(0, 255, 180, 0.38)';
-		ctx.lineWidth = 16;
+		// Mucus sheen core
+		ctx.strokeStyle = 'rgba(120, 255, 230, 0.28)';
+		ctx.lineWidth = 35;
 		ctx.stroke();
+
+		// 2. Suction cup impressions along the tentacle
+		for (let i = 0; i < pathPoints.length; i++) {
+			const pt = pathPoints[i];
+			const r = pt.r;
+
+			// Suction cup glow halo
+			const padGrad = ctx.createRadialGradient(pt.x, pt.y, r * 0.4, pt.x, pt.y, r * 1.35);
+			padGrad.addColorStop(0, 'rgba(0, 255, 200, 0)');
+			padGrad.addColorStop(0.7, 'rgba(40, 235, 190, 0.32)');
+			padGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+			ctx.fillStyle = padGrad;
+			ctx.beginPath();
+			ctx.arc(pt.x, pt.y, r * 1.35, 0, Math.PI * 2);
+			ctx.fill();
+
+			// Outer suction lip (thick compressed ring)
+			ctx.strokeStyle = 'rgba(215, 255, 245, 0.88)';
+			ctx.lineWidth = Math.max(2, r * 0.16);
+			ctx.beginPath();
+			ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+			ctx.stroke();
+
+			// Inner vacuum seal rim
+			ctx.strokeStyle = 'rgba(150, 240, 220, 0.65)';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.arc(pt.x, pt.y, r * 0.72, 0, Math.PI * 2);
+			ctx.stroke();
+
+			// Radial micro-ridges (papillae ridges inside sucker cup)
+			const spokes = 10;
+			ctx.strokeStyle = 'rgba(180, 255, 235, 0.45)';
+			ctx.lineWidth = 1.0;
+			for (let s = 0; s < spokes; s++) {
+				const ang = (s / spokes) * Math.PI * 2;
+				ctx.beginPath();
+				ctx.moveTo(pt.x + Math.cos(ang) * (r * 0.35), pt.y + Math.sin(ang) * (r * 0.35));
+				ctx.lineTo(pt.x + Math.cos(ang) * (r * 0.70), pt.y + Math.sin(ang) * (r * 0.70));
+				ctx.stroke();
+			}
+
+			// Chitinous suction ring hook / barb drag mark
+			if (i % 2 === 0 || i > 3) {
+				const hookAng = -0.45 + (Math.random() - 0.5) * 0.3;
+				const hookLen = r * 1.3;
+				const hx = pt.x + Math.cos(hookAng) * (r * 0.6);
+				const hy = pt.y + Math.sin(hookAng) * (r * 0.6);
+
+				ctx.beginPath();
+				ctx.moveTo(hx, hy);
+				ctx.quadraticCurveTo(
+					hx + Math.cos(hookAng + 0.5) * hookLen,
+					hy + Math.sin(hookAng + 0.5) * hookLen,
+					hx + Math.cos(hookAng + 0.2) * (hookLen * 1.5),
+					hy + Math.sin(hookAng + 0.2) * (hookLen * 1.5)
+				);
+				ctx.strokeStyle = 'rgba(0, 255, 200, 0.4)';
+				ctx.lineWidth = 8;
+				ctx.stroke();
+
+				ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+				ctx.lineWidth = 2.2;
+				ctx.stroke();
+			}
+
+			// Trapped micro-bubbles
+			for (let b = 0; b < 3; b++) {
+				const bx = pt.x + (Math.random() - 0.5) * r * 1.8;
+				const by = pt.y + (Math.random() - 0.5) * r * 1.8;
+				ctx.fillStyle = 'rgba(200, 255, 245, 0.8)';
+				ctx.beginPath();
+				ctx.arc(bx, by, 0.8 + Math.random() * 1.2, 0, Math.PI * 2);
+				ctx.fill();
+			}
+		}
+
+		return canvas;
+	});
+}
+
+export function createLightFailureScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_light_failure', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const cx = 256;
+		const cy = 256;
+
+		// 1. Necrotic cold impact smudge / ghostly frost halo
+		const frostGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 180);
+		frostGrad.addColorStop(0, 'rgba(220, 245, 255, 0.55)');
+		frostGrad.addColorStop(0.4, 'rgba(140, 245, 180, 0.25)');
+		frostGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+		ctx.fillStyle = frostGrad;
+		ctx.beginPath();
+		ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+		ctx.fill();
+
+		// 2. Central impact shockwaves & micro-cracks
+		ctx.strokeStyle = 'rgba(240, 255, 255, 0.7)';
+		ctx.lineWidth = 1.6;
+		for (const r of [24, 52, 88]) {
+			ctx.beginPath();
+			ctx.arc(cx, cy, r, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+		for (let a = 0; a < 10; a++) {
+			const ang = (a / 10) * Math.PI * 2 + (Math.random() - 0.5) * 0.2;
+			ctx.beginPath();
+			ctx.moveTo(cx, cy);
+			ctx.lineTo(cx + Math.cos(ang) * (65 + Math.random() * 45), cy + Math.sin(ang) * (65 + Math.random() * 45));
+			ctx.stroke();
+		}
+
+		// 3. Frantic, frantic multi-directional clawing
+		const drawClawRake = (startX: number, startY: number, angle: number, clawSpacing: number, count: number) => {
+			for (let c = 0; c < count; c++) {
+				const offset = (c - (count - 1) / 2) * clawSpacing;
+				const ox = -Math.sin(angle) * offset;
+				const oy = Math.cos(angle) * offset;
+
+				let x = startX + ox;
+				let y = startY + oy;
+				const pts: Array<{ x: number; y: number }> = [{ x, y }];
+
+				const steps = 18;
+				for (let s = 0; s < steps; s++) {
+					const stepLen = 8 + Math.random() * 12;
+					const jitter = (Math.random() - 0.5) * 9;
+					x += Math.cos(angle) * stepLen - Math.sin(angle) * jitter;
+					y += Math.sin(angle) * stepLen + Math.cos(angle) * jitter;
+					pts.push({ x, y });
+				}
+
+				// Glow
+				ctx.beginPath();
+				ctx.moveTo(pts[0].x, pts[0].y);
+				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
+				ctx.strokeStyle = 'rgba(160, 250, 255, 0.35)';
+				ctx.lineWidth = 14;
+				ctx.stroke();
+
+				// Trench
+				ctx.beginPath();
+				ctx.moveTo(pts[0].x, pts[0].y);
+				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
+				ctx.strokeStyle = 'rgba(235, 255, 255, 0.75)';
+				ctx.lineWidth = 4.5;
+				ctx.stroke();
+
+				// Sharp ragged nail core
+				ctx.beginPath();
+				ctx.moveTo(pts[0].x, pts[0].y);
+				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
+				ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+				ctx.lineWidth = 1.8;
+				ctx.stroke();
+			}
+		};
+
+		drawClawRake(280, 160, Math.PI * 0.65, 22, 5);
+		drawClawRake(160, 290, Math.PI * 0.08, 20, 5);
+		drawClawRake(320, 310, -Math.PI * 0.78, 18, 4);
+
+		return canvas;
+	});
+}
+
+export function createIsopodScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_isopod', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const baseY = 256;
+
+		ctx.fillStyle = 'rgba(240, 230, 200, 0.08)';
+		ctx.fillRect(20, baseY - 80, 472, 160);
+
+		for (let s = 0; s < 65; s++) {
+			const sx = 30 + Math.random() * 450;
+			const sy = baseY + (Math.random() - 0.5) * 110;
+			const len = 12 + Math.random() * 26;
+			const ang = (Math.random() - 0.5) * 0.7 + (Math.random() < 0.5 ? 0.3 : -0.3);
+
+			ctx.fillStyle = 'rgba(255, 250, 230, 0.98)';
+			ctx.beginPath();
+			ctx.arc(sx, sy, 1.8 + Math.random() * 1.2, 0, Math.PI * 2);
+			ctx.fill();
+
+			ctx.beginPath();
+			ctx.moveTo(sx, sy);
+			ctx.quadraticCurveTo(
+				sx + Math.cos(ang) * (len * 0.5) + (Math.random() - 0.5) * 6,
+				sy + Math.sin(ang) * (len * 0.5) + (Math.random() - 0.5) * 6,
+				sx + Math.cos(ang) * len,
+				sy + Math.sin(ang) * len
+			);
+			ctx.strokeStyle = 'rgba(255, 245, 215, 0.95)';
+			ctx.lineWidth = 1.8;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(180, 240, 220, 0.3)';
+			ctx.lineWidth = 5;
+			ctx.stroke();
+		}
+
+		return canvas;
+	});
+}
+
+export function createDeadDiverScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_dead_diver', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const cx = 256;
+		const cy = 256;
+
+		// 1. Rubber suit & condensation smear
+		const suitGrad = ctx.createLinearGradient(120, 120, 390, 390);
+		suitGrad.addColorStop(0, 'rgba(180, 220, 240, 0.0)');
+		suitGrad.addColorStop(0.4, 'rgba(180, 225, 245, 0.32)');
+		suitGrad.addColorStop(0.7, 'rgba(130, 205, 220, 0.22)');
+		suitGrad.addColorStop(1, 'rgba(180, 220, 240, 0.0)');
+		ctx.fillStyle = suitGrad;
+		ctx.beginPath();
+		ctx.ellipse(cx, cy, 170, 95, Math.PI / 4, 0, Math.PI * 2);
+		ctx.fill();
+
+		// 2. Heavy bronze helmet visor rim arc
+		ctx.strokeStyle = 'rgba(100, 210, 190, 0.55)';
+		ctx.lineWidth = 26;
+		ctx.beginPath();
+		ctx.arc(cx - 20, cy, 145, -Math.PI * 0.35, Math.PI * 0.45);
+		ctx.stroke();
+
+		ctx.strokeStyle = 'rgba(240, 220, 160, 0.85)';
+		ctx.lineWidth = 6;
+		ctx.beginPath();
+		ctx.arc(cx - 20, cy, 145, -Math.PI * 0.35, Math.PI * 0.45);
+		ctx.stroke();
+
+		ctx.strokeStyle = 'rgba(255, 255, 250, 0.95)';
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.arc(cx - 20, cy, 145, -Math.PI * 0.35, Math.PI * 0.45);
+		ctx.stroke();
+
+		// 3. 3 threaded brass wing-nut / bolt head drag tracks
+		for (const by of [180, 250, 320]) {
+			ctx.beginPath();
+			ctx.moveTo(140, by);
+			for (let x = 140; x < 380; x += 25) {
+				const step = (Math.random() - 0.5) * 8;
+				ctx.lineTo(x, by + step);
+			}
+			ctx.strokeStyle = 'rgba(235, 210, 150, 0.85)';
+			ctx.lineWidth = 3.5;
+			ctx.stroke();
+		}
+
+		// Trapped air-bubble drag trails
+		for (let b = 0; b < 16; b++) {
+			const bx = 160 + Math.random() * 200;
+			const by = 160 + Math.random() * 200;
+			ctx.fillStyle = 'rgba(220, 245, 255, 0.8)';
+			ctx.beginPath();
+			ctx.ellipse(bx, by, 3 + Math.random() * 4, 1.5, Math.PI / 4, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		return canvas;
+	});
+}
+
+export function createQuartzScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_quartz_impact', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const cx = 256;
+		const cy = 256;
+
+		const burstGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 110);
+		burstGrad.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+		burstGrad.addColorStop(0.3, 'rgba(160, 235, 255, 0.7)');
+		burstGrad.addColorStop(0.7, 'rgba(70, 175, 255, 0.3)');
+		burstGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+		ctx.fillStyle = burstGrad;
+		ctx.beginPath();
+		ctx.arc(cx, cy, 110, 0, Math.PI * 2);
+		ctx.fill();
+
+		const angles = [0, Math.PI / 3, (2 * Math.PI) / 3, Math.PI, (4 * Math.PI) / 3, (5 * Math.PI) / 3];
+		for (const a of angles) {
+			for (let sub = -1; sub <= 1; sub++) {
+				const ang = a + sub * 0.12;
+				const len = 90 + Math.random() * 140;
+
+				ctx.beginPath();
+				ctx.moveTo(cx, cy);
+				const midX = cx + Math.cos(ang) * (len * 0.6);
+				const midY = cy + Math.sin(ang) * (len * 0.6);
+				ctx.lineTo(midX, midY);
+				const kinkAng = ang + (Math.random() < 0.5 ? Math.PI / 3 : -Math.PI / 3);
+				ctx.lineTo(midX + Math.cos(kinkAng) * (len * 0.4), midY + Math.sin(kinkAng) * (len * 0.4));
+
+				ctx.strokeStyle = 'rgba(100, 220, 255, 0.45)';
+				ctx.lineWidth = 10;
+				ctx.stroke();
+
+				ctx.strokeStyle = 'rgba(240, 255, 255, 0.95)';
+				ctx.lineWidth = 2.5;
+				ctx.stroke();
+			}
+		}
+
+		return canvas;
+	});
+}
+
+export function createPredatorScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_predator', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		for (let s = 0; s < 180; s++) {
+			const x = 40 + Math.random() * 430;
+			const y = 80 + Math.random() * 350;
+			const len = 6 + Math.random() * 18;
+			ctx.beginPath();
+			ctx.moveTo(x, y);
+			ctx.lineTo(x + len, y + len * 0.35);
+			ctx.strokeStyle = 'rgba(160, 235, 255, 0.35)';
+			ctx.lineWidth = 1.2;
+			ctx.stroke();
+		}
+
+		const spineOffsets = [-120, -60, 0, 60, 120];
+		for (const oy of spineOffsets) {
+			ctx.beginPath();
+			ctx.moveTo(40, 200 + oy);
+			ctx.bezierCurveTo(180, 230 + oy, 330, 210 + oy, 470, 260 + oy);
+
+			ctx.strokeStyle = 'rgba(0, 210, 240, 0.35)';
+			ctx.lineWidth = 18;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(180, 245, 255, 0.85)';
+			ctx.lineWidth = 5;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+			ctx.lineWidth = 2;
+			ctx.stroke();
+		}
+
+		return canvas;
+	});
+}
+
+export function createColossalEyeScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_colossal_eye', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const cx = 256;
+		const cy = 256;
+
+		const eyeGrad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 210);
+		eyeGrad.addColorStop(0, 'rgba(240, 190, 80, 0.45)');
+		eyeGrad.addColorStop(0.5, 'rgba(80, 230, 200, 0.35)');
+		eyeGrad.addColorStop(0.85, 'rgba(40, 160, 180, 0.45)');
+		eyeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+		ctx.fillStyle = eyeGrad;
+		ctx.beginPath();
+		ctx.arc(cx, cy, 210, 0, Math.PI * 2);
+		ctx.fill();
+
+		for (const r of [70, 120, 175, 205]) {
+			ctx.strokeStyle = 'rgba(220, 250, 245, 0.65)';
+			ctx.lineWidth = 2.2;
+			ctx.beginPath();
+			ctx.arc(cx, cy, r, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+
+		for (let i = 0; i < 28; i++) {
+			const a = (i / 28) * Math.PI * 2;
+			ctx.beginPath();
+			ctx.moveTo(cx + Math.cos(a) * 140, cy + Math.sin(a) * 140);
+			ctx.lineTo(cx + Math.cos(a) * 205, cy + Math.sin(a) * 205);
+			ctx.strokeStyle = 'rgba(230, 255, 245, 0.45)';
+			ctx.lineWidth = 1.2;
+			ctx.stroke();
+		}
+
+		return canvas;
+	});
+}
+
+export function createMassiveEclipseScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_massive_eclipse', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		const barnacleTracks = [130, 240, 360];
+		for (const by of barnacleTracks) {
+			ctx.beginPath();
+			ctx.moveTo(30, by);
+			for (let x = 30; x < 480; x += 30) {
+				ctx.lineTo(x, by + (Math.random() - 0.5) * 22);
+			}
+			ctx.strokeStyle = 'rgba(70, 150, 180, 0.35)';
+			ctx.lineWidth = 28;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(215, 235, 245, 0.85)';
+			ctx.lineWidth = 10;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+			ctx.lineWidth = 3;
+			ctx.stroke();
+
+			for (let c = 0; c < 22; c++) {
+				const cx = 40 + Math.random() * 430;
+				const cy = by + (Math.random() - 0.5) * 26;
+				ctx.fillStyle = 'rgba(240, 245, 250, 0.9)';
+				ctx.beginPath();
+				ctx.arc(cx, cy, 1.5 + Math.random() * 2.5, 0, Math.PI * 2);
+				ctx.fill();
+			}
+		}
+
+		return canvas;
+	});
+}
+
+export function createLanternSwarmScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_lantern_swarm', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		for (let i = 0; i < 55; i++) {
+			const x = 35 + Math.random() * 442;
+			const y = 35 + Math.random() * 442;
+			const r = 6 + Math.random() * 16;
+
+			const grad = ctx.createRadialGradient(x, y, 1, x, y, r);
+			grad.addColorStop(0, Math.random() < 0.5 ? 'rgba(80, 255, 220, 0.85)' : 'rgba(190, 130, 255, 0.7)');
+			grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(x, y, r, 0, Math.PI * 2);
+			ctx.fill();
+
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+			ctx.beginPath();
+			ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+			ctx.fill();
+
+			if (Math.random() < 0.4) {
+				const fa = Math.random() * Math.PI * 2;
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.lineTo(x + Math.cos(fa) * 15, y + Math.sin(fa) * 15);
+				ctx.strokeStyle = 'rgba(180, 255, 240, 0.75)';
+				ctx.lineWidth = 1.2;
+				ctx.stroke();
+			}
+		}
+
+		return canvas;
+	});
+}
+
+export function createSiphonophoreScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_siphonophore', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		for (let f = 0; f < 10; f++) {
+			const startX = 20 + f * 50;
+			ctx.beginPath();
+			ctx.moveTo(startX, 20);
+
+			let curX = startX;
+			let curY = 20;
+			const beadPositions: Array<{ x: number; y: number }> = [];
+
+			while (curY < 490) {
+				curY += 20;
+				curX += Math.sin(curY * 0.04 + f) * 14 + 6;
+				ctx.lineTo(curX, curY);
+				if (Math.random() < 0.6) beadPositions.push({ x: curX, y: curY });
+			}
+
+			ctx.strokeStyle = 'rgba(170, 130, 255, 0.35)';
+			ctx.lineWidth = 12;
+			ctx.stroke();
+
+			ctx.strokeStyle = 'rgba(140, 230, 255, 0.75)';
+			ctx.lineWidth = 2.2;
+			ctx.stroke();
+
+			for (const b of beadPositions) {
+				ctx.fillStyle = 'rgba(230, 255, 255, 0.95)';
+				ctx.beginPath();
+				ctx.arc(b.x, b.y, 1.8, 0, Math.PI * 2);
+				ctx.fill();
+			}
+		}
+
+		return canvas;
+	});
+}
+
+export function createLeviathanShadowsScratchTexture(): THREE.CanvasTexture {
+	return getOrCreate('scratch_leviathan_shadows', () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 512;
+		const ctx = canvas.getContext('2d')!;
+		ctx.clearRect(0, 0, 512, 512);
+
+		for (let b = 0; b < 6; b++) {
+			const by = 60 + b * 75;
+			ctx.fillStyle = 'rgba(80, 170, 210, 0.12)';
+			ctx.fillRect(0, by, 512, 45);
+		}
+
+		for (let s = 0; s < 120; s++) {
+			const sx = Math.random() * 470;
+			const sy = Math.random() * 512;
+			const slen = 15 + Math.random() * 45;
+			ctx.beginPath();
+			ctx.moveTo(sx, sy);
+			ctx.lineTo(sx + slen, sy + (Math.random() - 0.5) * 6);
+			ctx.strokeStyle = 'rgba(190, 230, 250, 0.65)';
+			ctx.lineWidth = 1.0 + Math.random() * 1.5;
+			ctx.stroke();
+		}
+
+		return canvas;
+	});
+}
+
+export function getCreatureScratchTexture(type: WindowEventType | ScratchCreatureType | string): THREE.CanvasTexture {
+	const key = (type || 'CLAW_SCRAPE').toUpperCase().replace(/-/g, '_');
+	switch (key) {
+		case 'MAW_PRESS':
+		case 'MAW':
+			return createMawPressScratchTexture();
+		case 'TENTACLE_INSPECTION':
+		case 'TENTACLE':
+			return createTentacleScratchTexture();
+		case 'LIGHT_FAILURE':
+		case 'GHOUL':
+		case 'LIGHT':
+			return createLightFailureScratchTexture();
+		case 'GIANT_ISOPODS':
+		case 'ISOPOD':
+		case 'ISOPODS':
+			return createIsopodScratchTexture();
+		case 'DEAD_DIVER':
+		case 'DIVER':
+			return createDeadDiverScratchTexture();
+		case 'QUARTZ_IMPACT':
+		case 'QUARTZ':
+			return createQuartzScratchTexture();
+		case 'LURKING_PREDATOR':
+		case 'PREDATOR':
+			return createPredatorScratchTexture();
+		case 'COLOSSAL_EYE':
+		case 'EYE':
+			return createColossalEyeScratchTexture();
+		case 'MASSIVE_ECLIPSE':
+		case 'ECLIPSE':
+			return createMassiveEclipseScratchTexture();
+		case 'LANTERN_SWARM':
+		case 'LANTERN':
+		case 'SWARM':
+			return createLanternSwarmScratchTexture();
+		case 'SIPHONOPHORE':
+			return createSiphonophoreScratchTexture();
+		case 'LEVIATHAN_SHADOWS':
+		case 'SHADOWS':
+			return createLeviathanShadowsScratchTexture();
+		case 'CLAW_SCRAPE':
+		case 'CLAW':
+		default:
+			return createClawScrapeScratchTexture();
 	}
+}
 
-	const tex = new THREE.CanvasTexture(canvas);
-	tex.colorSpace = THREE.SRGBColorSpace;
-	return tex;
+export function createScratchTexture(type?: WindowEventType | ScratchCreatureType | string): THREE.CanvasTexture {
+	return getCreatureScratchTexture(type || 'CLAW_SCRAPE');
 }
 
 export function createEyeballTexture(): THREE.CanvasTexture {

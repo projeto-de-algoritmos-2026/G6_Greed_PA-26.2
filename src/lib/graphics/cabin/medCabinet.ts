@@ -1,6 +1,28 @@
 import * as THREE from 'three';
 import { createDarkRibTexture } from '../textures/procedural';
 
+function drawTintedImage(
+	ctx: CanvasRenderingContext2D,
+	img: HTMLImageElement,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	tintColor: string
+): void {
+	if (!img.complete || img.naturalWidth === 0) return;
+	const offscreen = document.createElement('canvas');
+	offscreen.width = img.naturalWidth;
+	offscreen.height = img.naturalHeight;
+	const octx = offscreen.getContext('2d');
+	if (!octx) return;
+	octx.drawImage(img, 0, 0);
+	octx.globalCompositeOperation = 'source-in';
+	octx.fillStyle = tintColor;
+	octx.fillRect(0, 0, offscreen.width, offscreen.height);
+	ctx.drawImage(offscreen, x, y, w, h);
+}
+
 export class MedCabinet {
 	public readonly group: THREE.Group;
 	public readonly manualMesh: THREE.Group;
@@ -117,7 +139,7 @@ export class MedCabinet {
 		this.manualMesh = new THREE.Group();
 		this.manualMesh.position.set(0, -0.22, 0.03);
 
-		const clipBoardMat = new THREE.MeshLambertMaterial({ color: 0x202b33 });
+		const clipBoardMat = new THREE.MeshLambertMaterial({ color: 0x3d2919 });
 		const board = new THREE.Mesh(new THREE.BoxGeometry(1.04, 1.08, 0.022), clipBoardMat);
 
 		const bumperMat = new THREE.MeshLambertMaterial({ color: 0x11161a });
@@ -146,17 +168,37 @@ export class MedCabinet {
 		}
 		this.manualMesh.add(clampBase, clampLip);
 
-		const paperStackMat = new THREE.MeshLambertMaterial({ color: 0xd6cbb5 });
+		const paperStackMat = new THREE.MeshLambertMaterial({ color: 0xf3ede0 });
 		const paperStack = new THREE.Mesh(new THREE.BoxGeometry(0.98, 1.02, 0.006), paperStackMat);
 		paperStack.position.set(0, -0.015, 0.012);
 		this.manualMesh.add(paperStack);
 
-		const manualCanvas = this.createHuffmanManualCanvas();
+		const S = 1536;
+		const manualCanvas = document.createElement('canvas');
+		manualCanvas.width = S;
+		manualCanvas.height = S;
+		const mctx = manualCanvas.getContext('2d')!;
+
 		const manualTexture = new THREE.CanvasTexture(manualCanvas);
 		manualTexture.colorSpace = THREE.SRGBColorSpace;
 		manualTexture.generateMipmaps = true;
 		manualTexture.minFilter = THREE.LinearMipmapLinearFilter;
 		manualTexture.magFilter = THREE.LinearFilter;
+
+		const logoImg = new Image();
+		logoImg.src = '/terminal.png';
+
+		const renderManual = () => {
+			this.renderHuffmanNotebookCanvas(mctx, S, logoImg);
+			manualTexture.needsUpdate = true;
+		};
+
+		if (logoImg.complete && logoImg.naturalWidth > 0) {
+			renderManual();
+		} else {
+			renderManual();
+			logoImg.onload = () => renderManual();
+		}
 
 		const manualSheet = new THREE.Mesh(
 			new THREE.PlaneGeometry(0.96, 1.00),
@@ -222,13 +264,13 @@ export class MedCabinet {
 		sctx.strokeRect(10, 10, 492, 108);
 
 		sctx.fillStyle = '#ffaa33';
-		sctx.font = 'bold 21px "Courier New", monospace';
+		sctx.font = 'bold 20px "Courier New", monospace';
 		sctx.textAlign = 'center';
-		sctx.fillText('COMPARTIMENTO DE EMERGÊNCIA #04', 256, 40);
+		sctx.fillText('COMPARTIMENTO TÉCNICO // ANEXO #04', 256, 40);
 
 		sctx.fillStyle = '#e8dcc4';
 		sctx.font = 'bold 15px "Courier New", monospace';
-		sctx.fillText('DIRETRIZ HUFFMAN (SOP-82) & PRIMEIROS SOCORROS', 256, 72);
+		sctx.fillText('CADERNO DE HUFFMAN (TUTORIAL DIDÁTICO)', 256, 72);
 
 		sctx.fillStyle = '#00ffaa';
 		sctx.font = 'bold 14px "Courier New", monospace';
@@ -254,10 +296,10 @@ export class MedCabinet {
 		hctx.strokeStyle = '#273830';
 		hctx.lineWidth = 3;
 		hctx.strokeRect(6, 6, 500, 52);
-		hctx.font = 'bold 20px "Courier New", monospace';
+		hctx.font = 'bold 19px "Courier New", monospace';
 		hctx.fillStyle = '#ffaa33';
 		hctx.textAlign = 'center';
-		hctx.fillText('COMPARTIMENTO DE EMERGÊNCIA // MANUAL SOP-82 [H]', 256, 40);
+		hctx.fillText('COMPARTIMENTO TÉCNICO // CADERNO HUFFMAN [H]', 256, 40);
 
 		const wallSign = new THREE.Mesh(
 			new THREE.PlaneGeometry(1.4, 0.18),
@@ -272,6 +314,14 @@ export class MedCabinet {
 	public open(): void {
 		this.isDoorOpen = true;
 		this.targetDoorAngle = -Math.PI * 0.62;
+	}
+
+	public snapOpen(): void {
+		this.isDoorOpen = true;
+		this.targetDoorAngle = -Math.PI * 0.62;
+		this.currentDoorAngle = this.targetDoorAngle;
+		this.doorHinge.rotation.y = this.currentDoorAngle;
+		this.interiorLight.intensity = 5.0;
 	}
 
 	public close(): void {
@@ -297,580 +347,529 @@ export class MedCabinet {
 		this.interiorLight.intensity = THREE.MathUtils.lerp(this.interiorLight.intensity, targetLight, 0.15);
 	}
 
-	private createHuffmanManualCanvas(): HTMLCanvasElement {
-		const canvas = document.createElement('canvas');
-		const S = 1536;
-		canvas.width = S;
-		canvas.height = S;
-		const ctx = canvas.getContext('2d')!;
-
-		const bgGrad = ctx.createRadialGradient(S / 2, S / 2, 200, S / 2, S / 2, 950);
-		bgGrad.addColorStop(0, '#f4ece0');
-		bgGrad.addColorStop(0.7, '#e8ded0');
-		bgGrad.addColorStop(1, '#c5b8a0');
+	private renderHuffmanNotebookCanvas(
+		ctx: CanvasRenderingContext2D,
+		S: number,
+		logoImg: HTMLImageElement
+	): void {
+		// --- 1. PAPEL PAUTADO CLÁSSICO DE LABORATÓRIO / ENGENHARIA ---
+		const bgGrad = ctx.createRadialGradient(S / 2, S / 2, 250, S / 2, S / 2, 1050);
+		bgGrad.addColorStop(0, '#fdfbf6');
+		bgGrad.addColorStop(0.7, '#f7f0e4');
+		bgGrad.addColorStop(1, '#ebe0cf');
 		ctx.fillStyle = bgGrad;
 		ctx.fillRect(0, 0, S, S);
 
+		// Granulação e textura orgânica de celulose
 		const imgData = ctx.getImageData(0, 0, S, S);
 		const px = imgData.data;
 		for (let i = 0; i < px.length; i += 8) {
-			const n = (Math.random() - 0.5) * 12;
+			const n = (Math.random() - 0.5) * 10;
 			px[i] = Math.max(0, Math.min(255, px[i] + n));
-			px[i + 1] = Math.max(0, Math.min(255, px[i + 1] + n * 0.9));
-			px[i + 2] = Math.max(0, Math.min(255, px[i + 2] + n * 0.7));
+			px[i + 1] = Math.max(0, Math.min(255, px[i + 1] + n * 0.95));
+			px[i + 2] = Math.max(0, Math.min(255, px[i + 2] + n * 0.8));
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		ctx.strokeStyle = 'rgba(40, 75, 95, 0.055)';
-		ctx.lineWidth = 1;
-		for (let x = 0; x < S; x += 24) {
+		// LINHAS PAUTADAS AZUIS HORIZONTAIS
+		const lineSpacing = 32;
+		for (let y = 64; y < S - 35; y += lineSpacing) {
+			const isMajor = Math.floor(y / lineSpacing) % 5 === 0;
+			ctx.strokeStyle = isMajor ? 'rgba(70, 120, 185, 0.42)' : 'rgba(90, 140, 200, 0.24)';
+			ctx.lineWidth = isMajor ? 1.6 : 1.0;
 			ctx.beginPath();
-			ctx.moveTo(x, 0);
-			ctx.lineTo(x, S);
-			ctx.stroke();
-		}
-		for (let y = 0; y < S; y += 24) {
-			ctx.beginPath();
-			ctx.moveTo(0, y);
-			ctx.lineTo(S, y);
+			ctx.moveTo(35, y);
+			ctx.lineTo(S - 35, y);
 			ctx.stroke();
 		}
 
-		for (const hy of [380, 1140]) {
-			ctx.fillStyle = '#bda77e';
+		// MARGEM VERTICAL VERMELHA DUPLA À ESQUERDA
+		const mX1 = 150;
+		const mX2 = 154;
+		ctx.strokeStyle = 'rgba(215, 60, 60, 0.48)';
+		ctx.lineWidth = 1.4;
+		ctx.beginPath();
+		ctx.moveTo(mX1, 35);
+		ctx.lineTo(mX1, S - 35);
+		ctx.stroke();
+
+		ctx.strokeStyle = 'rgba(215, 60, 60, 0.26)';
+		ctx.lineWidth = 1.0;
+		ctx.beginPath();
+		ctx.moveTo(mX2, 35);
+		ctx.lineTo(mX2, S - 35);
+		ctx.stroke();
+
+		// FUROS DE FICHÁRIO À ESQUERDA
+		const holeX = 65;
+		for (const hy of [220, 768, 1316]) {
+			ctx.fillStyle = '#e8d8be';
 			ctx.beginPath();
-			ctx.arc(38, hy, 16, 0, Math.PI * 2);
+			ctx.arc(holeX, hy, 18, 0, Math.PI * 2);
 			ctx.fill();
-			ctx.fillStyle = '#1e1c16';
-			ctx.beginPath();
-			ctx.arc(38, hy, 9, 0, Math.PI * 2);
-			ctx.fill();
-		}
-
-		const drawCrease = (x1: number, y1: number, x2: number, y2: number) => {
-			ctx.save();
-			ctx.strokeStyle = 'rgba(40, 30, 20, 0.13)';
-			ctx.lineWidth = 2;
-			ctx.beginPath();
-			ctx.moveTo(x1, y1);
-			ctx.lineTo(x2, y2);
-			ctx.stroke();
-
-			ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+			ctx.strokeStyle = 'rgba(135, 105, 70, 0.45)';
 			ctx.lineWidth = 1.5;
-			ctx.beginPath();
-			ctx.moveTo(x1 + 1.5, y1 + 1.5);
-			ctx.lineTo(x2 + 1.5, y2 + 1.5);
 			ctx.stroke();
+
+			ctx.fillStyle = '#22150d';
+			ctx.beginPath();
+			ctx.arc(holeX, hy, 9, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		const contentX = 175;
+		const contentW = S - contentX - 65; // ~1296px
+
+		// Helper: Desenho de Marca-texto amarelo
+		const drawHighlighter = (x: number, y: number, w: number, h: number) => {
+			ctx.save();
+			ctx.fillStyle = 'rgba(255, 235, 60, 0.45)';
+			ctx.beginPath();
+			ctx.roundRect(x, y, w, h, 4);
+			ctx.fill();
 			ctx.restore();
 		};
-		drawCrease(S / 2, 20, S / 2, S - 20);
-		drawCrease(20, S * 0.48, S - 20, S * 0.48);
 
-		ctx.strokeStyle = '#273830';
-		ctx.lineWidth = 8;
-		ctx.strokeRect(20, 20, S - 40, S - 40);
-
-		ctx.strokeStyle = '#4a6356';
-		ctx.lineWidth = 1.5;
-		ctx.strokeRect(28, 28, S - 56, S - 56);
-
-		const headX = 46;
-		const headY = 44;
-		const headW = S - 92;
-		const headH = 138;
-
-		ctx.fillStyle = '#141e1a';
-		ctx.fillRect(headX, headY, headW, headH);
-		ctx.strokeStyle = '#2d4438';
-		ctx.lineWidth = 2;
-		ctx.strokeRect(headX, headY, headW, headH);
-
-		const cx = headX + 70;
-		const cy = headY + 68;
-		ctx.save();
-		ctx.strokeStyle = 'rgba(0, 255, 170, 0.45)';
-		ctx.lineWidth = 2;
-		for (const r of [20, 34, 48]) {
+		// Helper: Caixa estilo rascunho de caderno
+		const drawBox = (x: number, y: number, w: number, h: number, bg: string, border: string) => {
+			ctx.fillStyle = bg;
 			ctx.beginPath();
-			ctx.arc(cx, cy, r, -Math.PI * 0.42, Math.PI * 0.42);
+			ctx.roundRect(x, y, w, h, 6);
+			ctx.fill();
+			ctx.strokeStyle = border;
+			ctx.lineWidth = 1.6;
 			ctx.stroke();
-		}
-		ctx.strokeStyle = '#e5a912';
-		ctx.fillStyle = '#e5a912';
-		ctx.lineWidth = 3;
-		ctx.beginPath();
-		ctx.arc(cx, cy - 20, 10, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.beginPath();
-		ctx.moveTo(cx, cy - 10);
-		ctx.lineTo(cx, cy + 30);
-		ctx.moveTo(cx - 20, cy);
-		ctx.lineTo(cx + 20, cy);
-		ctx.moveTo(cx - 24, cy + 18);
-		ctx.quadraticCurveTo(cx, cy + 40, cx + 24, cy + 18);
-		ctx.stroke();
-		ctx.restore();
+		};
 
+		// --- 2. CABEÇALHO DO MANUAL COM CARIMBO DE TINTA AZUL ---
+		drawHighlighter(contentX - 4, 60, 710, 36);
 		ctx.textAlign = 'left';
-		ctx.fillStyle = '#8ea89a';
+		ctx.fillStyle = '#102036';
+		ctx.font = '900 27px "Courier New", monospace';
+		ctx.fillText('MANUAL DIDÁTICO: COMPRESSÃO DE HUFFMAN', contentX + 6, 88);
+
+		ctx.fillStyle = '#244362';
 		ctx.font = 'bold 15px "Courier New", monospace';
-		ctx.fillText('HADAL DYNAMICS // DIVISÃO DE GUERRA HIDROACÚSTICA // SETOR TARTARUS-V', headX + 145, headY + 36);
+		ctx.fillText('Como construir a Árvore Binária Ótima através da Escolha Gulosa.', contentX + 6, 116);
 
-		ctx.fillStyle = '#ffffff';
-		ctx.font = '900 27px "Impact", "Arial Black", sans-serif';
-		ctx.fillText('PROCEDIMENTO OPERACIONAL DE EMERGÊNCIA (SOP-82-HUF)', headX + 145, headY + 70);
+		// Faixa destacada com a regra de ouro
+		ctx.fillStyle = 'rgba(255, 245, 160, 0.7)';
+		ctx.strokeStyle = '#dfc246';
+		ctx.lineWidth = 1.2;
+		ctx.beginPath();
+		ctx.roundRect(contentX, 134, contentW - 220, 36, 4);
+		ctx.fill();
+		ctx.stroke();
 
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 14.5px "Courier New", monospace';
-		ctx.fillText('DIRETRIZ DE CODIFICAÇÃO GULOSA DE HUFFMAN // NÍVEL DE CONTROLE 1', headX + 145, headY + 98);
+		ctx.fillStyle = '#102e18';
+		ctx.font = '900 13.5px "Courier New", monospace';
+		ctx.fillText('REGRA DE OURO: Letras frequentes usam 1 ou 2 bits. Letras raras usam 3 ou 4 bits.', contentX + 12, 156);
 
-		ctx.fillStyle = '#7a9688';
-		ctx.font = '12px "Courier New", monospace';
-		ctx.fillText('REF. CRUZADA: DIRETRIZ DE DISCIPLINA ACÚSTICA 409-MIL // REVISÃO: 12.NOV.1982', headX + 145, headY + 120);
+		// CARIMBO DO PEIXE (terminal.png) EM TINTA AZUL NO CANTO SUPERIOR DIREITO
+		const stampCX = contentX + contentW - 100;
+		const stampCY = 100;
+		const stampR = 64;
 
 		ctx.save();
-		ctx.translate(headX + headW - 135, headY + 68);
-		ctx.rotate(-0.06);
-		ctx.fillStyle = 'rgba(42, 10, 10, 0.9)';
-		ctx.fillRect(-100, -45, 200, 90);
-		ctx.strokeStyle = '#d62828';
-		ctx.lineWidth = 2.5;
-		ctx.strokeRect(-100, -45, 200, 90);
-		ctx.strokeStyle = 'rgba(214, 40, 40, 0.4)';
-		ctx.lineWidth = 1;
-		ctx.strokeRect(-95, -40, 190, 80);
+		ctx.translate(stampCX, stampCY);
+		ctx.rotate(0.08);
+
+		ctx.strokeStyle = '#1b3a5d';
+		ctx.lineWidth = 2.8;
+		ctx.beginPath();
+		ctx.arc(0, 0, stampR, 0, Math.PI * 2);
+		ctx.stroke();
+
+		ctx.strokeStyle = 'rgba(27, 58, 93, 0.5)';
+		ctx.lineWidth = 1.4;
+		ctx.beginPath();
+		ctx.arc(0, 0, stampR - 6, 0, Math.PI * 2);
+		ctx.stroke();
 
 		ctx.textAlign = 'center';
-		ctx.fillStyle = '#ff4d4d';
-		ctx.font = '900 16px "Arial Black", monospace';
-		ctx.fillText('URGENTE', 0, -18);
-		ctx.font = 'bold 12px "Courier New", monospace';
-		ctx.fillText('GRAU ÔMEGA', 0, 0);
-		ctx.fillText('PROTOCOLO EM VIGOR', 0, 18);
-		ctx.fillStyle = '#ff8888';
-		ctx.font = 'bold 10px "Courier New", monospace';
-		ctx.fillText('TARTARUS-V // 1982', 0, 32);
+		ctx.fillStyle = '#1b3a5d';
+		ctx.font = '900 10.5px "Courier New", monospace';
+		ctx.fillText('TARTARUS LABS', 0, -stampR + 17);
+		ctx.fillText('HUFFMAN APROVADO', 0, stampR - 12);
+
+		// Tintura azul militar para o peixe carimbado
+		drawTintedImage(ctx, logoImg, -38, -36, 76, 76, '#1b3a5d');
 		ctx.restore();
 
-		const s1Y = 194;
-		const s1H = 116;
-		ctx.fillStyle = '#0f1714';
-		ctx.fillRect(headX, s1Y, headW, s1H);
-		ctx.strokeStyle = '#273830';
-		ctx.lineWidth = 1.5;
-		ctx.strokeRect(headX, s1Y, headW, s1H);
+		// --- 3. PARTE 1: OS 3 PASSOS DA ESCOLHA GULOSA (Y: 190 a 435) ---
+		const sY = 190;
+		const sH = 240;
+		const stepW = Math.floor((contentW - 30) / 3);
 
-		ctx.fillStyle = '#1a2922';
-		ctx.fillRect(headX, s1Y, headW, 26);
+		// PASSO 1: IDENTIFICAR OS MENORES
+		const p1X = contentX;
+		drawBox(p1X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
+		drawHighlighter(p1X + 10, sY + 8, 260, 24);
+
 		ctx.textAlign = 'left';
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 13.5px "Courier New", monospace';
-		ctx.fillText('1. OBJETIVO OPERACIONAL & PRINCÍPIO DO SILÊNCIO ACÚSTICO', headX + 14, s1Y + 18);
+		ctx.fillStyle = '#0f2238';
+		ctx.font = '900 14px "Courier New", monospace';
+		ctx.fillText('1. IDENTIFICAR OS MENORES', p1X + 14, sY + 25);
 
-		ctx.fillStyle = '#e8dcc4';
-		ctx.font = '14px "Courier New", monospace';
-		const s1Lines = [
-			'• Emissões brutas em 8 bits por caractere produzem choque hidroacústico contínuo na fossa.',
-			'• O algoritmo guloso de Huffman constrói uma árvore de prefixos ótima, minimizando o total de bits emitidos.',
-			'• Caracteres de alta frequência recebem sequências binárias curtas; caracteres raros ficam mais profundos.',
-			'• Resultado: redução superior a 70% da energia sonora, mantendo o casco abaixo do limiar de ecolocalização.'
-		];
-		s1Lines.forEach((l, idx) => ctx.fillText(l, headX + 16, s1Y + 48 + idx * 19));
+		ctx.fillStyle = '#263d52';
+		ctx.font = 'bold 12px "Courier New", monospace';
+		ctx.fillText('Ordene a fila de prioridade pelo peso:', p1X + 12, sY + 50);
 
-		const s2Y = 320;
-		const s2H = 238;
-		ctx.fillStyle = '#0f1714';
-		ctx.fillRect(headX, s2Y, headW, s2H);
-		ctx.strokeStyle = '#273830';
-		ctx.strokeRect(headX, s2Y, headW, s2H);
-
-		ctx.fillStyle = '#1a2922';
-		ctx.fillRect(headX, s2Y, headW, 26);
-		ctx.fillStyle = '#e5a912';
-		ctx.font = 'bold 13.5px "Courier New", monospace';
-		ctx.fillText('2. PROTOCOLO OPERACIONAL DA ESCOLHA GULOSA (PASSO A PASSO NA BANCADA)', headX + 14, s2Y + 18);
-
-		const steps = [
-			{
-				tag: '[PASSO 1: IDENTIFICAR]',
-				desc: 'Examine a fila de nós no terminal. Localize impreterivelmente os DOIS NÓS COM MENOR PESO (frequência).'
-			},
-			{
-				tag: '[PASSO 2: SELECIONAR]',
-				desc: 'Clique nos dois nós identificados (ou use as teclas numéricas de atalho da esteira de prioridade).'
-			},
-			{
-				tag: '[PASSO 3: FUNDIR - ESPAÇO]',
-				desc: 'Pressione [ESPAÇO]. O sistema une os nós, criando um NÓ PAI com peso somado: W_pai = W_esq + W_dir.'
-			},
-			{
-				tag: '[PASSO 4: REITERAR]',
-				desc: 'O novo nó pai passa a competir na esteira. Repita a fusão dos 2 menores até restar APENAS 1 NÓ (a Raiz).'
-			},
-			{
-				tag: '[PASSO 5: TRANSMITIR - ENTER]',
-				desc: 'Com a árvore 100% conectada (raiz consolidada), pressione [ENTER] para modular e disparar a transmissão.'
-			}
-		];
-
-		steps.forEach((st, idx) => {
-			const py = s2Y + 54 + idx * 40;
-			ctx.fillStyle = '#e5a912';
-			ctx.font = '900 14px "Courier New", monospace';
-			ctx.fillText(st.tag, headX + 16, py);
-
-			ctx.fillStyle = '#ffffff';
-			ctx.font = '13.5px "Courier New", monospace';
-			ctx.fillText(st.desc, headX + 270, py);
-		});
-
-		const s3Y = 568;
-		const s3H = 488;
-		ctx.fillStyle = '#080d0a';
-		ctx.fillRect(headX, s3Y, headW, s3H);
-		ctx.strokeStyle = '#273830';
-		ctx.strokeRect(headX, s3Y, headW, s3H);
-
-		ctx.fillStyle = '#15241d';
-		ctx.fillRect(headX, s3Y, headW, 26);
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 13.5px "Courier New", monospace';
-		ctx.fillText('3. DIAGRAMA ESQUEMÁTICO ILUSTRADO DE FUSÃO E CODIFICAÇÃO BINÁRIA', headX + 14, s3Y + 18);
-
-		const col1W = 540;
-		ctx.fillStyle = '#0c1410';
-		ctx.fillRect(headX + 14, s3Y + 38, col1W, s3H - 52);
-		ctx.strokeStyle = '#1b2c24';
-		ctx.strokeRect(headX + 14, s3Y + 38, col1W, s3H - 52);
-
-		ctx.fillStyle = '#e5a912';
-		ctx.font = 'bold 13px "Courier New", monospace';
-		ctx.fillText('FILA DE PRIORIDADE: ESCOLHA DOS 2 MENORES', headX + 28, s3Y + 64);
-
-		const drawNode = (x: number, y: number, label: string, freq: number, isMin: boolean) => {
-			ctx.fillStyle = isMin ? '#2d1818' : '#14221b';
-			ctx.strokeStyle = isMin ? '#ff4444' : '#00ffaa';
-			ctx.lineWidth = isMin ? 2.5 : 1.5;
+		// Mini cards [A:2] [B:3] [C:5] [D:8]
+		const drawMiniCard = (x: number, y: number, ch: string, w: number, isMin: boolean) => {
+			ctx.fillStyle = isMin ? '#fdedea' : '#eef4f8';
+			ctx.strokeStyle = isMin ? '#cc2222' : '#456a88';
+			ctx.lineWidth = isMin ? 2.0 : 1.2;
 			ctx.beginPath();
-			ctx.roundRect(x, y, 96, 52, 6);
+			ctx.roundRect(x, y, 68, 42, 6);
 			ctx.fill();
 			ctx.stroke();
 
-			ctx.fillStyle = isMin ? '#ff6666' : '#00ffaa';
-			ctx.font = '900 16px "Courier New", monospace';
 			ctx.textAlign = 'center';
-			ctx.fillText(`'${label}'`, x + 48, y + 24);
-			ctx.fillStyle = '#ffffff';
-			ctx.font = 'bold 13px "Courier New", monospace';
-			ctx.fillText(`p:${freq}`, x + 48, y + 44);
+			ctx.fillStyle = isMin ? '#b81414' : '#143048';
+			ctx.font = '900 14px "Courier New", monospace';
+			ctx.fillText(`'${ch}'`, x + 34, y + 20);
+			ctx.font = 'bold 11px "Courier New", monospace';
+			ctx.fillText(`p:${w}`, x + 34, y + 36);
 			ctx.textAlign = 'left';
 		};
 
-		drawNode(headX + 35, s3Y + 88, 'A', 2, true);
-		drawNode(headX + 155, s3Y + 88, 'B', 3, true);
-		drawNode(headX + 275, s3Y + 88, 'C', 5, false);
-		drawNode(headX + 395, s3Y + 88, 'D', 8, false);
+		drawMiniCard(p1X + 12, sY + 66, 'A', 2, true);
+		drawMiniCard(p1X + 88, sY + 66, 'B', 3, true);
+		drawMiniCard(p1X + 164, sY + 66, 'C', 5, false);
+		drawMiniCard(p1X + 240, sY + 66, 'D', 8, false);
 
-		ctx.strokeStyle = '#ff4444';
-		ctx.lineWidth = 2;
+		// Círculo vermelho feito à mão contornando A e B
+		ctx.strokeStyle = '#d42222';
+		ctx.lineWidth = 2.4;
 		ctx.beginPath();
-		ctx.moveTo(headX + 35, s3Y + 148);
-		ctx.lineTo(headX + 35, s3Y + 162);
-		ctx.lineTo(headX + 251, s3Y + 162);
-		ctx.lineTo(headX + 251, s3Y + 148);
+		ctx.ellipse(p1X + 84, sY + 87, 80, 28, 0, 0, Math.PI * 2);
 		ctx.stroke();
 
-		ctx.fillStyle = '#ff5555';
-		ctx.font = 'bold 12.5px "Courier New", monospace';
-		ctx.fillText('▲ OS 2 MENORES PESOS SELECIONADOS ▲', headX + 48, s3Y + 180);
+		ctx.fillStyle = '#cc1818';
+		ctx.font = '900 12.5px "Courier New", monospace';
+		ctx.fillText('▲ 2 MENORES PESOS: (2 e 3)', p1X + 12, sY + 130);
 
-		ctx.strokeStyle = '#e5a912';
-		ctx.lineWidth = 2.5;
-		ctx.beginPath();
-		ctx.moveTo(headX + 143, s3Y + 192);
-		ctx.lineTo(headX + 143, s3Y + 230);
-		ctx.stroke();
-		ctx.beginPath();
-		ctx.moveTo(headX + 135, s3Y + 222);
-		ctx.lineTo(headX + 143, s3Y + 234);
-		ctx.lineTo(headX + 151, s3Y + 222);
-		ctx.fill();
+		ctx.fillStyle = '#3c5870';
+		ctx.font = 'bold 11.5px "Courier New", monospace';
+		ctx.fillText('A escolha gulosa SEMPRE une', p1X + 12, sY + 158);
+		ctx.fillText('os dois nós mais leves da esteira.', p1X + 12, sY + 178);
 
-		ctx.fillStyle = '#e5a912';
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 12px "Courier New", monospace';
+		ctx.fillText('Clique ou use teclas 1..4', p1X + 12, sY + 212);
+
+		// PASSO 2: FUNDIR COM ESPAÇO
+		const p2X = p1X + stepW + 15;
+		drawBox(p2X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
+		drawHighlighter(p2X + 10, sY + 8, 240, 24);
+
+		ctx.fillStyle = '#0f2238';
+		ctx.font = '900 14px "Courier New", monospace';
+		ctx.fillText('2. FUNDIR COM [ESPAÇO]', p2X + 14, sY + 25);
+
+		ctx.fillStyle = '#263d52';
 		ctx.font = 'bold 12px "Courier New", monospace';
-		ctx.fillText('[ESPAÇO] FUSÃO', headX + 160, s3Y + 218);
+		ctx.fillText('Crie um Nó Pai somando os pesos:', p2X + 12, sY + 50);
 
-		ctx.fillStyle = '#1c2920';
-		ctx.strokeStyle = '#00ffaa';
-		ctx.lineWidth = 2;
+		// Caixa de fusão do nó pai
+		ctx.fillStyle = '#e8f6ed';
+		ctx.strokeStyle = '#1d7844';
+		ctx.lineWidth = 2.0;
 		ctx.beginPath();
-		ctx.roundRect(headX + 85, s3Y + 242, 116, 54, 8);
+		ctx.roundRect(p2X + 30, sY + 66, stepW - 60, 46, 8);
 		ctx.fill();
 		ctx.stroke();
 
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = '900 15px "Courier New", monospace';
-		ctx.fillText('PAI Σ [A+B]', headX + 96, s3Y + 266);
-		ctx.fillStyle = '#ffffff';
-		ctx.font = 'bold 13px "Courier New", monospace';
-		ctx.fillText('PESO: 2 + 3 = 5', headX + 96, s3Y + 286);
+		ctx.textAlign = 'center';
+		ctx.fillStyle = '#125c32';
+		ctx.font = '900 14px "Courier New", monospace';
+		ctx.fillText('NÓ PAI: 2 + 3 = 5', p2X + stepW / 2, sY + 86);
+		ctx.fillStyle = '#254530';
+		ctx.font = 'bold 11px "Courier New", monospace';
+		ctx.fillText('Filhos: A(2) e B(3)', p2X + stepW / 2, sY + 103);
+		ctx.textAlign = 'left';
 
-		ctx.fillStyle = '#8daaa0';
-		ctx.font = '12px "Courier New", monospace';
-		const c1Lines = [
-			'O nó pai Σ (peso 5) é reinserido na fila.',
-			'Agora os 2 menores são: Σ (5) e C (5).',
-			'Fundem-se em nó de peso 10.',
-			'Por fim, 10 e D (8) formam a Raiz (18).'
-		];
-		c1Lines.forEach((l, idx) => ctx.fillText(l, headX + 30, s3Y + 340 + idx * 24));
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 12.5px "Courier New", monospace';
+		ctx.fillText('✔ O PAI VOLTA PARA A FILA!', p2X + 12, sY + 130);
 
-		const col2X = headX + 14 + col1W + 14;
-		const col2W = headW - col1W - 42;
-		ctx.fillStyle = '#0c1410';
-		ctx.fillRect(col2X, s3Y + 38, col2W, s3H - 52);
-		ctx.strokeStyle = '#1b2c24';
-		ctx.strokeRect(col2X, s3Y + 38, col2W, s3H - 52);
+		ctx.fillStyle = '#3c5870';
+		ctx.font = 'bold 11.5px "Courier New", monospace';
+		ctx.fillText('Nova fila ordenada:', p2X + 12, sY + 158);
+		ctx.fillStyle = '#103050';
+		ctx.font = '900 12px "Courier New", monospace';
+		ctx.fillText('[ C: 5 ]   [ Pai: 5 ]   [ D: 8 ]', p2X + 12, sY + 178);
 
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 13px "Courier New", monospace';
-		ctx.fillText('ÁRVORE DE HUFFMAN MONTADA & PREFIXOS', col2X + 20, s3Y + 64);
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 12px "Courier New", monospace';
+		ctx.fillText('Pressione [ESPAÇO] para fundir', p2X + 12, sY + 212);
 
-		const rx = col2X + 220;
-		const ry = s3Y + 110;
+		// PASSO 3: REPETIR ATÉ A RAIZ
+		const p3X = p2X + stepW + 15;
+		drawBox(p3X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
+		drawHighlighter(p3X + 10, sY + 8, 250, 24);
 
-		const drawCircleNode = (x: number, y: number, label: string, color: string) => {
-			ctx.fillStyle = '#101a15';
-			ctx.strokeStyle = color;
-			ctx.lineWidth = 2;
+		ctx.fillStyle = '#0f2238';
+		ctx.font = '900 14px "Courier New", monospace';
+		ctx.fillText('3. REPETIR ATÉ A RAIZ', p3X + 14, sY + 25);
+
+		ctx.fillStyle = '#263d52';
+		ctx.font = 'bold 12px "Courier New", monospace';
+		ctx.fillText('Continue unindo os 2 menores:', p3X + 12, sY + 50);
+
+		ctx.fillStyle = '#183452';
+		ctx.font = 'bold 12px "Courier New", monospace';
+		ctx.fillText('• Funda C(5) + Pai(5) -> [10]', p3X + 12, sY + 76);
+		ctx.fillText('• Funda D(8) + Nó(10) -> [18]', p3X + 12, sY + 102);
+
+		ctx.fillStyle = '#b81414';
+		ctx.font = '900 12.5px "Courier New", monospace';
+		ctx.fillText('★ RAIZ ÚNICA ALCANÇADA!', p3X + 12, sY + 130);
+
+		ctx.fillStyle = '#3c5870';
+		ctx.font = 'bold 11.5px "Courier New", monospace';
+		ctx.fillText('Quando restar apenas 1 nó,', p3X + 12, sY + 158);
+		ctx.fillText('a Árvore Binária está completa!', p3X + 12, sY + 178);
+
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 12px "Courier New", monospace';
+		ctx.fillText('Pressione [ENTER] para emitir', p3X + 12, sY + 212);
+
+		// --- 4. PARTE 2: A GRANDE ÁRVORE BINÁRIA ESPAÇOSA E LIMPA (Y: 450 a 1015) ---
+		const treeY = 450;
+		const treeH = 565;
+		drawBox(contentX, treeY, contentW, treeH, 'rgba(255, 255, 255, 0.92)', '#244560');
+
+		// Barra de título da árvore
+		drawHighlighter(contentX + 12, treeY + 10, 840, 28);
+		ctx.fillStyle = '#0a1624';
+		ctx.font = '900 14.5px "Courier New", monospace';
+		ctx.fillText('DEMONSTRAÇÃO DA ÁRVORE COMPLETA // RAMO ESQUERDO = BIT \'0\'  |  RAMO DIREITO = BIT \'1\'', contentX + 18, treeY + 29);
+
+		// Coordenadas centrais da árvore
+		const rx = contentX + Math.floor(contentW * 0.42);
+		const ry = treeY + 85;
+
+		const drawCircleNode = (x: number, y: number, label: string, isLeaf: boolean, freq: number) => {
+			const r = 28;
+			ctx.fillStyle = isLeaf ? '#e8f6ed' : '#fef6e6';
+			ctx.strokeStyle = isLeaf ? '#156035' : '#c47d0b';
+			ctx.lineWidth = 2.4;
 			ctx.beginPath();
-			ctx.arc(x, y, 22, 0, Math.PI * 2);
+			ctx.arc(x, y, r, 0, Math.PI * 2);
 			ctx.fill();
 			ctx.stroke();
 
-			ctx.fillStyle = color;
-			ctx.font = '900 13px "Courier New", monospace';
 			ctx.textAlign = 'center';
-			ctx.fillText(label, x, y + 5);
+			ctx.fillStyle = isLeaf ? '#0f4825' : '#8a5200';
+			ctx.font = '900 15px "Courier New", monospace';
+			ctx.fillText(label, x, isLeaf ? y - 3 : y + 5);
+
+			if (isLeaf) {
+				ctx.fillStyle = '#156035';
+				ctx.font = 'bold 11px "Courier New", monospace';
+				ctx.fillText(`p:${freq}`, x, y + 14);
+			}
 			ctx.textAlign = 'left';
 		};
 
 		const drawBranch = (x1: number, y1: number, x2: number, y2: number, bit: '0' | '1') => {
-			ctx.strokeStyle = '#3d614e';
-			ctx.lineWidth = 2;
+			ctx.strokeStyle = '#2b4458';
+			ctx.lineWidth = 2.8;
 			ctx.beginPath();
 			ctx.moveTo(x1, y1);
 			ctx.lineTo(x2, y2);
 			ctx.stroke();
 
+			// Pílula com o bit 0 ou 1
 			const mx = (x1 + x2) / 2;
 			const my = (y1 + y2) / 2;
-			ctx.fillStyle = bit === '0' ? '#12261a' : '#262012';
-			ctx.strokeStyle = bit === '0' ? '#00ffaa' : '#e5a912';
-			ctx.lineWidth = 1.5;
+			ctx.fillStyle = bit === '0' ? '#d4f2df' : '#fcedd2';
+			ctx.strokeStyle = bit === '0' ? '#1b7a42' : '#c47d0b';
+			ctx.lineWidth = 1.8;
 			ctx.beginPath();
-			ctx.arc(mx, my, 11, 0, Math.PI * 2);
+			ctx.roundRect(mx - 14, my - 14, 28, 28, 6);
 			ctx.fill();
 			ctx.stroke();
 
-			ctx.fillStyle = bit === '0' ? '#00ffaa' : '#e5a912';
-			ctx.font = '900 12px "Courier New", monospace';
 			ctx.textAlign = 'center';
-			ctx.fillText(bit, mx, my + 4);
+			ctx.fillStyle = bit === '0' ? '#145c32' : '#8a5200';
+			ctx.font = '900 16px "Courier New", monospace';
+			ctx.fillText(bit, mx, my + 6);
 			ctx.textAlign = 'left';
 		};
 
-		const dPos = { x: rx - 140, y: ry + 80 };
-		const n10Pos = { x: rx + 140, y: ry + 80 };
-		const cPos = { x: n10Pos.x - 90, y: n10Pos.y + 90 };
-		const n5Pos = { x: n10Pos.x + 90, y: n10Pos.y + 90 };
-		const aPos = { x: n5Pos.x - 55, y: n5Pos.y + 90 };
-		const bPos = { x: n5Pos.x + 55, y: n5Pos.y + 90 };
+		// Posições dos nós
+		const nRoot = { x: rx, y: ry };
+		const nD = { x: rx - 190, y: ry + 115 };
+		const n10 = { x: rx + 150, y: ry + 115 };
+		const nC = { x: n10.x - 120, y: n10.y + 125 };
+		const n5 = { x: n10.x + 120, y: n10.y + 125 };
+		const nA = { x: n5.x - 70, y: n5.y + 125 };
+		const nB = { x: n5.x + 70, y: n5.y + 125 };
 
-		drawBranch(rx, ry + 22, dPos.x, dPos.y - 22, '0');
-		drawBranch(rx, ry + 22, n10Pos.x, n10Pos.y - 22, '1');
+		// Ramos com 0 e 1
+		drawBranch(nRoot.x, nRoot.y + 28, nD.x, nD.y - 28, '0');
+		drawBranch(nRoot.x, nRoot.y + 28, n10.x, n10.y - 28, '1');
 
-		drawBranch(n10Pos.x, n10Pos.y + 22, cPos.x, cPos.y - 22, '0');
-		drawBranch(n10Pos.x, n10Pos.y + 22, n5Pos.x, n5Pos.y - 22, '1');
+		drawBranch(n10.x, n10.y + 28, nC.x, nC.y - 28, '0');
+		drawBranch(n10.x, n10.y + 28, n5.x, n5.y - 28, '1');
 
-		drawBranch(n5Pos.x, n5Pos.y + 22, aPos.x, aPos.y - 22, '0');
-		drawBranch(n5Pos.x, n5Pos.y + 22, bPos.x, bPos.y - 22, '1');
+		drawBranch(n5.x, n5.y + 28, nA.x, nA.y - 28, '0');
+		drawBranch(n5.x, n5.y + 28, nB.x, nB.y - 28, '1');
 
-		drawCircleNode(rx, ry, '18', '#e5a912');
-		drawCircleNode(dPos.x, dPos.y, 'D:8', '#00ffaa');
-		drawCircleNode(n10Pos.x, n10Pos.y, '10', '#7bb89a');
-		drawCircleNode(cPos.x, cPos.y, 'C:5', '#00ffaa');
-		drawCircleNode(n5Pos.x, n5Pos.y, '5', '#7bb89a');
-		drawCircleNode(aPos.x, aPos.y, 'A:2', '#00ffaa');
-		drawCircleNode(bPos.x, bPos.y, 'B:3', '#00ffaa');
+		// Desenho dos nós
+		drawCircleNode(nRoot.x, nRoot.y, '18', false, 18);
+		drawCircleNode(nD.x, nD.y, "'D'", true, 8);
+		drawCircleNode(n10.x, n10.y, '10', false, 10);
+		drawCircleNode(nC.x, nC.y, "'C'", true, 5);
+		drawCircleNode(n5.x, n5.y, '5', false, 5);
+		drawCircleNode(nA.x, nA.y, "'A'", true, 2);
+		drawCircleNode(nB.x, nB.y, "'B'", true, 3);
 
-		const tabX = col2X + 460;
-		const tabY = s3Y + 80;
-		ctx.fillStyle = '#101a15';
-		ctx.fillRect(tabX, tabY, 360, 290);
-		ctx.strokeStyle = '#273830';
-		ctx.strokeRect(tabX, tabY, 360, 290);
+		// TABELA LATERAL DE PREFIXOS AO LADO DA ÁRVORE (DIREITA)
+		const sideTabX = contentX + contentW - 380;
+		const sideTabY = treeY + 50;
+		drawBox(sideTabX, sideTabY, 360, 440, '#f8fcff', '#3c6991');
 
-		ctx.fillStyle = '#e5a912';
-		ctx.font = 'bold 12.5px "Courier New", monospace';
-		ctx.fillText('DICIONÁRIO DE PREFIXOS', tabX + 16, tabY + 26);
+		drawHighlighter(sideTabX + 12, sideTabY + 10, 336, 26);
+		ctx.fillStyle = '#0f1c2b';
+		ctx.font = '900 13px "Courier New", monospace';
+		ctx.fillText('CÓDIGOS GERADOS (RAIZ -> FOLHA)', sideTabX + 18, sideTabY + 28);
 
-		ctx.fillStyle = '#8ea89a';
-		ctx.font = 'bold 11.5px "Courier New", monospace';
-		ctx.fillText('CHAR  FREQ  CÓDIGO    COMPRIMENTO', tabX + 16, tabY + 54);
-
-		const codeTable = [
-			{ char: 'D', f: 8, code: '0', len: '1 bit' },
-			{ char: 'C', f: 5, code: '10', len: '2 bits' },
-			{ char: 'A', f: 2, code: '110', len: '3 bits' },
-			{ char: 'B', f: 3, code: '111', len: '3 bits' }
+		const codes = [
+			{ ch: "'D'", f: 8, code: '0', bits: '1 bit', c: '#156035', desc: 'Mais frequente = Mais curto!' },
+			{ ch: "'C'", f: 5, code: '10', bits: '2 bits', c: '#156035', desc: 'Frequência média' },
+			{ ch: "'A'", f: 2, code: '110', bits: '3 bits', c: '#b81414', desc: 'Raro = Código mais longo' },
+			{ ch: "'B'", f: 3, code: '111', bits: '3 bits', c: '#b81414', desc: 'Raro = Código mais longo' }
 		];
 
-		codeTable.forEach((ct, idx) => {
-			const cty = tabY + 84 + idx * 28;
-			ctx.fillStyle = '#00ffaa';
-			ctx.font = 'bold 13px "Courier New", monospace';
-			ctx.fillText(`'${ct.char}'`, tabX + 22, cty);
+		codes.forEach((cd, idx) => {
+			const cy = sideTabY + 50 + idx * 78;
 			ctx.fillStyle = '#ffffff';
-			ctx.fillText(`${ct.f}`, tabX + 90, cty);
-			ctx.fillStyle = '#e5a912';
-			ctx.fillText(`${ct.code}`, tabX + 155, cty);
-			ctx.fillStyle = '#a8c2b5';
-			ctx.fillText(`${ct.len}`, tabX + 250, cty);
-		});
-
-		ctx.fillStyle = 'rgba(0, 255, 170, 0.12)';
-		ctx.fillRect(tabX + 12, tabY + 204, 336, 72);
-		ctx.strokeStyle = '#00ffaa';
-		ctx.lineWidth = 1;
-		ctx.strokeRect(tabX + 12, tabY + 204, 336, 72);
-
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 12px "Courier New", monospace';
-		ctx.fillText('ECONOMIA DE BITS BENTÔNICA:', tabX + 20, tabY + 226);
-		ctx.fillStyle = '#ffffff';
-		ctx.font = '11px "Courier New", monospace';
-		ctx.fillText('ASCII BRUTO: 18 × 8 = 144 bits', tabX + 20, tabY + 246);
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 12px "Courier New", monospace';
-		ctx.fillText('HUFFMAN: 31 bits [ -78.5% RUÍDO ]', tabX + 20, tabY + 266);
-
-		const s4Y = 1066;
-		const s4H = 162;
-		ctx.fillStyle = '#1a0c0c';
-		ctx.fillRect(headX, s4Y, headW, s4H);
-		ctx.strokeStyle = '#ff3344';
-		ctx.lineWidth = 2.5;
-		ctx.strokeRect(headX, s4Y, headW, s4H);
-
-		ctx.save();
-		ctx.beginPath();
-		ctx.rect(headX + 2, s4Y + 2, headW - 4, 18);
-		ctx.clip();
-		ctx.fillStyle = '#220808';
-		ctx.fillRect(headX + 2, s4Y + 2, headW - 4, 18);
-		ctx.fillStyle = '#ff4444';
-		for (let x = -40; x < headW + 60; x += 30) {
+			ctx.strokeStyle = cd.c;
+			ctx.lineWidth = 1.4;
 			ctx.beginPath();
-			ctx.moveTo(headX + x, s4Y + 2);
-			ctx.lineTo(headX + x + 15, s4Y + 2);
-			ctx.lineTo(headX + x - 2, s4Y + 20);
-			ctx.lineTo(headX + x - 17, s4Y + 20);
-			ctx.closePath();
+			ctx.roundRect(sideTabX + 12, cy, 336, 68, 6);
 			ctx.fill();
-		}
-		ctx.restore();
+			ctx.stroke();
 
-		ctx.fillStyle = '#ff4444';
-		ctx.font = '900 17px "Impact", "Arial Black", sans-serif';
-		ctx.fillText('⚠ ADVERTÊNCIA DE COMBATE: O DESVIO GULOSO É FATAL ⚠', headX + 24, s4Y + 48);
+			ctx.fillStyle = cd.c;
+			ctx.font = '900 17px "Courier New", monospace';
+			ctx.fillText(`${cd.ch}  ->  "${cd.code}"`, sideTabX + 24, cy + 26);
 
-		ctx.fillStyle = '#ffffff';
-		ctx.font = '14px "Courier New", monospace';
-		const warnLines = [
-			'1. Se o operador fundir nós que NÃO sejam os dois de menor peso atual, a propriedade ótima é perdida.',
-			'2. Cada bit excedente aumenta o pico sonoro em +3.2 dB, excitando as bio-antenas do Olho Colossal no abisso.',
-			'3. Em caso de seleção incorreta: UTILIZE IMEDIATAMENTE [Z] (DESFAZER) OU [R] (REINICIAR ÁRVORE).',
-			'4. NUNCA dispare o transmissor [ENTER] sem antes garantir a raiz única e a compressão mínima estipulada.'
-		];
-		warnLines.forEach((l, idx) => ctx.fillText(l, headX + 24, s4Y + 76 + idx * 24));
+			ctx.fillStyle = '#2c4052';
+			ctx.font = 'bold 13px "Courier New", monospace';
+			ctx.fillText(`(${cd.bits})`, sideTabX + 240, cy + 26);
 
-		const s5Y = 1238;
-		const s5H = 250;
-		ctx.fillStyle = '#0f1714';
-		ctx.fillRect(headX, s5Y, headW, s5H);
-		ctx.strokeStyle = '#273830';
-		ctx.strokeRect(headX, s5Y, headW, s5H);
-
-		ctx.fillStyle = '#15241d';
-		ctx.fillRect(headX, s5Y, headW, 26);
-		ctx.fillStyle = '#e5a912';
-		ctx.font = 'bold 13.5px "Courier New", monospace';
-		ctx.fillText('4. CONTROLES RÁPIDOS DA BANCADA DE COMUNICAÇÃO', headX + 14, s5Y + 18);
-
-		const controls = [
-			{ key: '[ESPAÇO]', desc: 'Fundir os dois nós selecionados em nó pai' },
-			{ key: '[Z]', desc: 'Desfazer a última fusão realizada' },
-			{ key: '[R]', desc: 'Reiniciar árvore completa para os nós iniciais' },
-			{ key: '[ENTER]', desc: 'Disparar transmissão do pacote compactado' },
-			{ key: '[F] / [C]', desc: 'Alternar foco nos Monitores CRT (Principal / Auxiliar)' },
-			{ key: '[P]', desc: 'Inspecionar Pôster Naval de Segurança na antepara frontal' },
-			{ key: '[H] / [ESC]', desc: 'Fechar compartimento de emergência e retornar ao assento' }
-		];
-
-		controls.forEach((c, idx) => {
-			const cx = headX + (idx % 2 === 0 ? 24 : 740);
-			const cy = s5Y + 54 + Math.floor(idx / 2) * 28;
-			ctx.fillStyle = '#00ffaa';
-			ctx.font = 'bold 14px "Courier New", monospace';
-			ctx.fillText(c.key, cx, cy);
-			ctx.fillStyle = '#ffffff';
-			ctx.font = '13px "Courier New", monospace';
-			ctx.fillText(c.desc, cx + 130, cy);
+			ctx.fillStyle = '#5c758a';
+			ctx.font = 'italic 11px "Courier New", monospace';
+			ctx.fillText(cd.desc, sideTabX + 24, cy + 50);
 		});
 
-		const divY = s5Y + 172;
-		ctx.strokeStyle = '#273830';
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.moveTo(headX + 16, divY);
-		ctx.lineTo(headX + headW - 16, divY);
-		ctx.stroke();
+		ctx.fillStyle = '#b81414';
+		ctx.font = '900 11.5px "Courier New", monospace';
+		ctx.fillText('★ PROPRIEDADE DE PREFIXO:', sideTabX + 16, sideTabY + 390);
+		ctx.fillStyle = '#263d52';
+		ctx.font = 'bold 11px "Courier New", monospace';
+		ctx.fillText('Nenhum código é início de outro!', sideTabX + 16, sideTabY + 412);
 
-		ctx.fillStyle = '#7a9688';
-		ctx.font = 'bold 12px "Courier New", monospace';
-		ctx.fillText('OFICIAL DE SISTEMAS ACÚSTICOS // VISTORIA HOMOLOGADA', headX + 24, divY + 24);
-		ctx.fillText('ESTAÇÃO BENTÔNICA TARTARUS-V // ANTEPARA N-04 // 1982', headX + 24, divY + 44);
+		// Anotação manuscrita embaixo da árvore
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 13.5px "Courier New", monospace';
+		ctx.fillText('✔ Repare: \'D\' (peso 8) está a apenas 1 salto da raiz e gasta apenas 1 bit (\'0\')!', contentX + 20, treeY + treeH - 24);
 
-		ctx.fillStyle = '#3a6888';
-		ctx.font = 'italic 900 17px "Georgia", "Times New Roman", serif';
-		ctx.fillText('Cap. Ten. R. Vance', headX + 480, divY + 36);
+		// --- 5. PARTE 3: COMPROVAÇÃO MATEMÁTICA E ECONOMIA DE BITS (Y: 1035 a 1230) ---
+		const savY = 1035;
+		const savH = 195;
+		drawBox(contentX, savY, contentW, savH, 'rgba(255, 255, 255, 0.88)', '#244560');
 
-		ctx.save();
-		const sStampX = headX + headW - 180;
-		const sStampY = divY + 34;
-		ctx.translate(sStampX, sStampY);
-		ctx.rotate(0.04);
-		ctx.strokeStyle = '#2d8f68';
+		drawHighlighter(contentX + 14, savY + 10, 540, 26);
+		ctx.fillStyle = '#0a1624';
+		ctx.font = '900 14px "Courier New", monospace';
+		ctx.fillText('COMPROVAÇÃO MATEMÁTICA: O IMPACTO NO CASCO', contentX + 20, savY + 28);
+
+		// Barra Vermelha (ASCII)
+		const bY1 = savY + 50;
+		ctx.fillStyle = '#c32323';
+		ctx.fillRect(contentX + 20, bY1, contentW - 40, 34);
+		ctx.fillStyle = '#ffffff';
+		ctx.font = '900 13px "Courier New", monospace';
+		ctx.fillText('ASCII PADRÃO (8-BIT):  18 letras × 8 bits = 144 BITS   [ ALTO RISCO DE DETECÇÃO PELO MONSTRO ]', contentX + 35, bY1 + 22);
+
+		// Barra Verde (Huffman)
+		const bY2 = savY + 95;
+		const huffW = Math.floor((contentW - 40) * 0.23); // 23% do comprimento!
+		ctx.fillStyle = '#198c41';
+		ctx.fillRect(contentX + 20, bY2, huffW, 34);
+		ctx.strokeStyle = '#198c41';
 		ctx.lineWidth = 2;
-		ctx.strokeRect(-90, -26, 180, 52);
-		ctx.fillStyle = '#3eb587';
-		ctx.font = 'bold 10px "Courier New", monospace';
-		ctx.textAlign = 'center';
-		ctx.fillText('VISTORIA TÉCNICA', 0, -8);
-		ctx.font = '900 13px "Arial Black", monospace';
-		ctx.fillText('HOMOLOGADO', 0, 10);
-		ctx.font = 'bold 9px "Courier New", monospace';
-		ctx.fillText('SOP-82-HUF', 0, 22);
-		ctx.restore();
+		ctx.strokeRect(contentX + 20, bY2, contentW - 40, 34);
+
+		ctx.fillStyle = '#ffffff';
+		ctx.font = '900 13px "Courier New", monospace';
+		ctx.fillText('HUFFMAN: 33 BITS', contentX + 35, bY2 + 22);
+
+		ctx.fillStyle = '#147833';
+		ctx.font = '900 13px "Courier New", monospace';
+		ctx.fillText('(8×1 + 5×2 + 2×3 + 3×3 = 33 bits) -> ECONOMIA DE 77.1% DOS BITS!', contentX + huffW + 35, bY2 + 22);
+
+		ctx.fillStyle = '#263d52';
+		ctx.font = 'bold 12px "Courier New", monospace';
+		ctx.fillText('Conclusão: Cada bit economizado reduz o alcance sonoro das ondas na fossa em centenas de metros.', contentX + 20, savY + 160);
+
+		// --- 6. PARTE 4: COMANDOS DA BANCADA NO TERMINAL (Y: 1245 a 1485) ---
+		const ctlY = 1245;
+		const ctlH = 240;
+		drawBox(contentX, ctlY, contentW, ctlH, 'rgba(255, 255, 255, 0.88)', '#355975');
+
+		drawHighlighter(contentX + 14, ctlY + 10, 420, 26);
+		ctx.fillStyle = '#0a1624';
+		ctx.font = '900 13.5px "Courier New", monospace';
+		ctx.fillText('COMANDOS DA BANCADA NO TERMINAL', contentX + 20, ctlY + 28);
+
+		const keys = [
+			{ k: '[ CLIQUE OU 1..9 ]', d: 'Seleciona 2 nós na esteira' },
+			{ k: '[ BARRA ESPAÇO ]', d: 'Funde os 2 nós selecionados' },
+			{ k: '[ TECLA Z ]', d: 'Desfaz a última fusão' },
+			{ k: '[ TECLA R ]', d: 'Reinicia a árvore do início' },
+			{ k: '[ TECLA ENTER ]', d: 'Transmite com a raiz pronta' },
+			{ k: '[ TECLA H / ESC ]', d: 'Fecha este caderno de anotações' }
+		];
+
+		keys.forEach((item, idx) => {
+			const col = idx < 3 ? 0 : 1;
+			const row = idx < 3 ? idx : idx - 3;
+			const kx = contentX + (col === 0 ? 20 : Math.floor(contentW / 2) + 10);
+			const ky = ctlY + 48 + row * 44;
+
+			ctx.fillStyle = '#f0f5fc';
+			ctx.strokeStyle = '#325a82';
+			ctx.lineWidth = 1.2;
+			ctx.beginPath();
+			ctx.roundRect(kx, ky, 180, 34, 6);
+			ctx.fill();
+			ctx.stroke();
+
+			ctx.textAlign = 'center';
+			ctx.fillStyle = '#0f2846';
+			ctx.font = '900 12px "Courier New", monospace';
+			ctx.fillText(item.k, kx + 90, ky + 21);
+			ctx.textAlign = 'left';
+
+			ctx.fillStyle = '#263d52';
+			ctx.font = 'bold 12.5px "Courier New", monospace';
+			ctx.fillText(item.d, kx + 195, ky + 21);
+		});
+
+		ctx.fillStyle = '#657d94';
+		ctx.font = 'bold 11px "Courier New", monospace';
+		ctx.fillText('REGISTRO DIDÁTICO DE ENGENHARIA // TARTARUS LABS', contentX + 20, ctlY + ctlH - 20);
 
 		ctx.textAlign = 'right';
-		ctx.fillStyle = '#00ffaa';
-		ctx.font = '900 14px "Courier New", monospace';
-		ctx.fillText('[ TECLA H OU ESC PARA FECHAR E RETORNAR ]', headX + headW - 24, s5Y + s5H - 14);
-
-		return canvas;
+		ctx.fillStyle = '#156035';
+		ctx.font = '900 13px "Courier New", monospace';
+		ctx.fillText('[ PRESSIONE H OU ESC PARA VOLTAR AO TERMINAL ]', contentX + contentW - 20, ctlY + ctlH - 20);
 	}
 }
-

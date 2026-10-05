@@ -53,3 +53,56 @@ export interface LevelConfig {
 	decode: DecodeConfig | null;
 }
 
+export interface PriorityQueueItem {
+	id: string;
+	label: string;
+	weight: number;
+	isLeaf: boolean;
+	isOptimalNextMin: boolean;
+}
+
+export interface PriorityQueueSnapshot {
+	items: PriorityQueueItem[];
+	topTwoMinIds: [string, string] | null;
+	recommendationExplanation: string;
+}
+
+export interface GreedyAdvice {
+	idA: string;
+	idB: string;
+	labelA: string;
+	labelB: string;
+	weightA: number;
+	weightB: number;
+	sumWeight: number;
+	explanation: string;
+	theoreticPrinciple: string;
+}
+
+export interface CharacterCodeReport {
+	char: string;
+	frequency: number;
+	playerCode: string;
+	playerBitLen: number;
+	optimalCode: string;
+	optimalBitLen: number;
+}
+
+export interface AcademicReport {
+	message: string;
+	characterCount: number;
+	distinctCharacters: number;
+	shannonEntropy: number;
+	rawAsciiBits: number;
+	playerBits: number;
+	optimalBits: number;
+	efficiencyPct: number;
+	compressionRatioPct: number;
+	averageCodeLength: number;
+	redundancyBits: number;
+	characterTable: CharacterCodeReport[];
+	asciiTree: string;
+	markdown: string;
+	json: string;
+}
+

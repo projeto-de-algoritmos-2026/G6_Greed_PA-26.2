@@ -1,4 +1,4 @@
-import type { HuffmanMetrics, HuffmanNode } from '../engine/huffman';
+import type { HuffmanMetrics, HuffmanNode, AcademicReport, GreedyAdvice } from '../engine/huffman';
 import { terminalLogo } from './terminalLogo';
 
 export interface TerminalScreenState {
@@ -31,6 +31,8 @@ export interface TerminalScreenState {
 	hasDecode: boolean;
 	gameOverCause: string | null;
 	decode: DecodeScreenState | null;
+	academicReport?: AcademicReport;
+	greedyAdvice?: GreedyAdvice | null;
 }
 
 export type DecodeStage = 'decoding' | 'verdict' | 'result';
@@ -60,7 +62,8 @@ export type ScreenActionCallback = (action: {
 		| 'DECODE_PICK'
 		| 'VERDICT'
 		| 'RESUME_FORCE'
-		| 'RESUME_HOLD';
+		| 'RESUME_HOLD'
+		| 'EXPORT_REPORT';
 	nodeId?: string;
 	char?: string;
 	authentic?: boolean;
@@ -995,55 +998,181 @@ export class TerminalScreenCanvas {
 	}
 
 	private renderVictoryScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
-		ctx.fillStyle = 'rgba(0, 24, 16, 0.8)';
+		ctx.fillStyle = 'rgba(0, 18, 12, 0.92)';
 		ctx.fillRect(0, 0, this.width, this.height);
 
+		// Header Frame
+		ctx.strokeStyle = '#00ffaa';
+		ctx.lineWidth = 1.5;
+		ctx.strokeRect(40, 28, this.width - 80, 712);
+
+		ctx.fillStyle = 'rgba(0, 255, 170, 0.08)';
+		ctx.fillRect(40, 28, this.width - 80, 56);
+		ctx.strokeRect(40, 28, this.width - 80, 56);
+
 		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 28px "Courier New", monospace';
+		ctx.font = 'bold 22px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('SINAL TRANSMITIDO COM SUCESSO', this.width / 2, 150);
+		ctx.fillText('RELATÓRIO DE DEBRIEFING // ALGORITMO DE HUFFMAN', this.width / 2, 63);
 
-		ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-		ctx.font = '15px "Courier New", monospace';
-		ctx.fillText('SONAR SILENCIADO A TEMPO.', this.width / 2, 196);
-		ctx.fillText('A CRIATURA PERDEU O RASTRO NA FENDA.', this.width / 2, 222);
+		// Subtitle & Status
+		ctx.font = '12px "Courier New", monospace';
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+		const subtitleText = state.hasDecode
+			? 'SINAL DE RETORNO DETECTADO NO HIDROFONE // TRANSMISSÃO CONCLUÍDA'
+			: 'SINAL ACÚSTICO COMPRIMIDO E TRANSMITIDO COM SUCESSO';
+		ctx.fillText(subtitleText, this.width / 2, 104);
+
+		ctx.font = '12px "Courier New", monospace';
+		ctx.fillStyle =
+			state.hullIntegrity < 50 ? '#ff3b3b' : state.hullIntegrity < 80 ? '#ffaa00' : 'rgba(0, 255, 170, 0.85)';
+		ctx.fillText(`INTEGRIDADE DO CASCO: ${Math.round(state.hullIntegrity)}%`, this.width / 2, 122);
+
+		// Metrics Cards Area
+		const cardY = 134;
+		const cardH = 88;
+		const gap = 16;
+		const cardW = (this.width - 120 - gap * 2) / 3;
+
+		// Card 1: Eficiência Ambiciosa
+		const c1X = 60;
+		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
+		ctx.fillRect(c1X, cardY, cardW, cardH);
+		ctx.strokeStyle = state.metrics.efficiency >= 95 ? '#00ffaa' : '#ffaa00';
+		ctx.strokeRect(c1X, cardY, cardW, cardH);
+
+		ctx.fillStyle = 'rgba(0, 255, 170, 0.75)';
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillText('EFICIÊNCIA AMBICIOSA', c1X + cardW / 2, cardY + 24);
+		ctx.font = 'bold 28px "Courier New", monospace';
+		ctx.fillStyle = state.metrics.efficiency >= 95 ? '#00ffaa' : '#ffaa00';
+		ctx.fillText(`${state.metrics.efficiency}%`, c1X + cardW / 2, cardY + 60);
+
+		// Card 2: Compressão vs ASCII 8-bit
+		const c2X = c1X + cardW + gap;
+		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
+		ctx.fillRect(c2X, cardY, cardW, cardH);
+		ctx.strokeStyle = '#00ffaa';
+		ctx.strokeRect(c2X, cardY, cardW, cardH);
+
+		ctx.fillStyle = 'rgba(0, 255, 170, 0.75)';
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillText('TAXA DE COMPRESSÃO', c2X + cardW / 2, cardY + 24);
+		ctx.font = 'bold 28px "Courier New", monospace';
+		ctx.fillStyle = '#00ffaa';
+		ctx.fillText(`${state.metrics.compressionRatio}%`, c2X + cardW / 2, cardY + 60);
+
+		// Card 3: Total de Bits
+		const c3X = c2X + cardW + gap;
+		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
+		ctx.fillRect(c3X, cardY, cardW, cardH);
+		ctx.strokeStyle = '#00ffaa';
+		ctx.strokeRect(c3X, cardY, cardW, cardH);
+
+		ctx.fillStyle = 'rgba(0, 255, 170, 0.75)';
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillText('CUSTO PONDERADO (BITS)', c3X + cardW / 2, cardY + 24);
+		ctx.font = 'bold 22px "Courier New", monospace';
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(`${state.metrics.playerBits}b / ${state.metrics.optimalBits}b`, c3X + cardW / 2, cardY + 54);
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+		ctx.fillText(`ASCII Bruto: ${state.metrics.rawAsciiBits}b`, c3X + cardW / 2, cardY + 74);
+
+		// Character Prefix Dictionary Table (Compact Grid)
+		const tableY = 244;
+		const tableW = this.width - 120;
+		const tableH = 220;
+
+		ctx.fillStyle = 'rgba(0, 22, 14, 0.75)';
+		ctx.fillRect(60, tableY, tableW, tableH);
+		ctx.strokeStyle = 'rgba(0, 255, 170, 0.4)';
+		ctx.strokeRect(60, tableY, tableW, tableH);
 
 		ctx.fillStyle = '#00ffaa';
-		ctx.font = 'bold 18px "Courier New", monospace';
-		ctx.fillText(`EFICIÊNCIA GULOSA: ${state.metrics.efficiency}%`, this.width / 2, 266);
+		ctx.font = 'bold 13px "Courier New", monospace';
+		ctx.textAlign = 'left';
+		ctx.fillText('► DICIONÁRIO DE PREFIXOS E ANÁLISE DE SÍMBOLOS:', 76, tableY + 24);
 
-		ctx.fillStyle = 'rgba(0, 255, 170, 0.8)';
-		ctx.font = '13px "Courier New", monospace';
-		ctx.fillText(`Bits: ${state.metrics.rawAsciiBits}  ➔  ${state.metrics.playerBits}`, this.width / 2, 298);
-		ctx.fillText(`Economia de Ruído: ${state.metrics.compressionRatio}%`, this.width / 2, 320);
-		ctx.fillStyle =
-			state.hullIntegrity < 50 ? '#ff3b3b' : state.hullIntegrity < 80 ? '#ffaa00' : 'rgba(0, 255, 170, 0.8)';
-		ctx.fillText(`Integridade do casco: ${Math.round(state.hullIntegrity)}%`, this.width / 2, 342);
+		const charReport = state.academicReport?.characterTable || [];
+		const cols = 3;
+		const colW = (tableW - 32) / cols;
+		const rowH = 26;
 
-		if (state.isAlternativeOptimal) {
-			ctx.fillStyle = '#ffffff';
-			ctx.font = 'bold 12px "Courier New", monospace';
-			ctx.fillText('SUA ÁRVORE DIFERE DA REFERÊNCIA, MAS TEM O MESMO CUSTO:', this.width / 2, 372);
-			ctx.fillText('EMPATES DE FREQUÊNCIA GERAM VÁRIAS ÁRVORES ÓTIMAS.', this.width / 2, 390);
+		charReport.slice(0, 15).forEach((item, idx) => {
+			const c = idx % cols;
+			const r = Math.floor(idx / cols);
+			const ix = 76 + c * colW;
+			const iy = tableY + 54 + r * rowH;
+
+			ctx.font = '12px "Courier New", monospace';
+			ctx.fillStyle = item.playerCode === item.optimalCode ? '#00ffaa' : '#ffaa00';
+			ctx.fillText(
+				`${item.char.padEnd(7)} : ${item.playerCode.padEnd(8)} (${item.playerBitLen}b | ót:${item.optimalCode})`,
+				ix,
+				iy
+			);
+		});
+
+		// Theoretical Information Section
+		const entropyY = 484;
+		ctx.fillStyle = 'rgba(0, 28, 18, 0.7)';
+		ctx.fillRect(60, entropyY, tableW, 90);
+		ctx.strokeStyle = 'rgba(0, 255, 170, 0.3)';
+		ctx.strokeRect(60, entropyY, tableW, 90);
+
+		ctx.fillStyle = '#00ffaa';
+		ctx.font = 'bold 12px "Courier New", monospace';
+		ctx.textAlign = 'left';
+		ctx.fillText('DIAGNÓSTICO ALGORÍTMICO & TEORIA DA INFORMAÇÃO:', 76, entropyY + 22);
+
+		ctx.font = '12px "Courier New", monospace';
+		ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+		if (state.academicReport) {
+			ctx.fillText(
+				`Entropia de Shannon H(X): ${state.academicReport.shannonEntropy} b/símb | Comprimento Médio L: ${state.academicReport.averageCodeLength} b/símb | Redundância: ${state.academicReport.redundancyBits}b`,
+				76,
+				entropyY + 44
+			);
 		}
 
-		ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-		ctx.font = '12px "Courier New", monospace';
-		ctx.fillText(
-			state.hasDecode ? 'SINAL DE RETORNO DETECTADO NO HIDROFONE...' : 'AGUARDANDO EQUIPE DE RESGATE...',
-			this.width / 2,
-			416
-		);
+		ctx.fillStyle = state.metrics.efficiency >= 95 ? '#00ffaa' : '#ffaa00';
+		let diagText =
+			state.metrics.efficiency >= 95
+				? '[OTIMO] Solução Ótima Estrita: Menores frequências isoladas nos nós mais profundos. Custo ponderado mínimo alcançado.'
+				: `[SUBOTIMO] Custo excedente de +${state.metrics.playerBits - state.metrics.optimalBits} bits devido à fusão antecipada de nós com maior frequência.`;
+		if (state.isAlternativeOptimal) {
+			diagText = '[ÓTIMO ALTERNATIVO] Empate de frequências: árvore difere da referência canônica com mesmo custo.';
+		}
+		ctx.fillText(diagText, 76, entropyY + 68);
+
+		// Action Buttons
+		const btnY = 594;
+		const halfW = (this.width - 120 - 20) / 2;
 
 		this.renderTactileButton(
 			ctx,
-			this.width / 2 - 180,
-			440,
-			360,
+			60,
+			btnY,
+			halfW,
 			50,
-			state.hasDecode ? '[ DECODIFICAR RESPOSTA: ENTER ]' : '[ PRÓXIMO SETOR ]',
+			'[ EXPORTAR RELATÓRIO (E) ]',
 			true,
-			() => this.onAction?.({ type: state.hasDecode ? 'START_DECODE' : 'NEXT_LEVEL' }),
+			() => this.onAction?.({ type: 'EXPORT_REPORT' })
+		);
+
+		const nextLabel = state.hasDecode ? '[ DECODIFICAR RESPOSTA (ENTER) ]' : '[ PRÓXIMO SETOR (ENTER) ]';
+		const nextAction = state.hasDecode ? 'START_DECODE' : 'NEXT_LEVEL';
+
+		this.renderTactileButton(
+			ctx,
+			60 + halfW + 20,
+			btnY,
+			halfW,
+			50,
+			nextLabel,
+			true,
+			() => this.onAction?.({ type: nextAction }),
 			true
 		);
 	}
@@ -1219,7 +1348,7 @@ export class TerminalScreenCanvas {
 			bootTime: this.bootTime,
 			bootDuration: this.bootDuration,
 			theme: 'green',
-			titleMain: 'SUBWAVE',
+			titleMain: 'SONARWAVE',
 			titleXP: 'xp',
 			subtitle: 'Professional',
 			companyName: 'T A R T A R U S   S U B M E R S I B L E   S Y S T E M S',

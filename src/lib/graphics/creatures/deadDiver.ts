@@ -20,6 +20,7 @@ export class DeadDiverActor implements WindowEventActor {
 	private elapsed: number = 0;
 	private duration: number = 14.0;
 	private opening: 'hatch' = 'hatch';
+	private scuffTriggered: boolean = false;
 
 	constructor() {
 		this.root = new THREE.Group();
@@ -225,6 +226,7 @@ export class DeadDiverActor implements WindowEventActor {
 		this.elapsed = 0;
 		this.duration = 14.0;
 		this.opening = opts.opening;
+		this.scuffTriggered = false;
 		this.root.visible = true;
 
 		this.diverGroup.position.set(-2.8, -1.8, -1.15);
@@ -234,7 +236,7 @@ export class DeadDiverActor implements WindowEventActor {
 		ctx.audio?.playDeadDiverDrift(pan);
 	}
 
-	public update(dt: number, _ctx: EventContext): boolean {
+	public update(dt: number, ctx: EventContext): boolean {
 		this.elapsed += dt;
 		const progress = this.elapsed / this.duration;
 
@@ -267,6 +269,11 @@ export class DeadDiverActor implements WindowEventActor {
 		this.diverGroup.rotation.y = THREE.MathUtils.lerp(this.diverGroup.rotation.y, facingTarget, dt * 1.8);
 		this.diverGroup.rotation.z = Math.sin(this.elapsed * 0.5) * 0.18;
 		this.diverGroup.rotation.x = 0.2 + Math.cos(this.elapsed * 0.6) * 0.12;
+
+		if (progress > 0.48 && !this.scuffTriggered) {
+			this.scuffTriggered = true;
+			ctx.glass(this.opening).addScratch(0.15, -0.25, 0.65, 'DEAD_DIVER');
+		}
 
 		if (progress > 0.45 && progress < 0.72) {
 			this.helmetGroup.rotation.y = Math.sin(this.elapsed * 1.5) * 0.15;

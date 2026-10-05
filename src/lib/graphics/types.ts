@@ -42,10 +42,27 @@ export interface OpeningFrame {
 	glassRadius: number;
 }
 
+export type ScratchCreatureType =
+	| WindowEventType
+	| 'claw'
+	| 'maw'
+	| 'tentacle'
+	| 'ghoul'
+	| 'isopod'
+	| 'diver'
+	| 'quartz'
+	| 'predator'
+	| 'eye'
+	| 'eclipse'
+	| 'lantern'
+	| 'siphonophore'
+	| 'shadows'
+	| 'default';
+
 export interface GlassDamageApi {
 	addCrack(x: number, y: number, severity: number): void;
-	addScratch(x: number, y: number, severity: number): void;
-	addScratchStroke(points: ReadonlyArray<readonly [number, number]>, width?: number): void;
+	addScratch(x: number, y: number, severity: number, creatureType?: ScratchCreatureType | string): void;
+	addScratchStroke(points: ReadonlyArray<readonly [number, number]>, width?: number, creatureType?: ScratchCreatureType | string): void;
 	addSmear(x: number, y: number, radius: number): void;
 }
 

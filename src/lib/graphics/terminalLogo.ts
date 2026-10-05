@@ -388,7 +388,7 @@ export class TerminalLogoManager {
 			drawRings: false
 		});
 
-		// 5. Windows XP-Style Brand Wordmark: "SUBWAVE xp" / "TARTARUS xp"
+		// 5. Windows XP-Style Brand Wordmark: "SONARWAVE xp" / "TARTARUS xp"
 		const textY = 422;
 		ctx.save();
 

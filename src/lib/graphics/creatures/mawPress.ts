@@ -179,7 +179,7 @@ export class MawPressActor implements WindowEventActor {
 			if (!this.contactTriggered) {
 				this.contactTriggered = true;
 				ctx.shake(0.45);
-				ctx.glass('hatch').addScratch(0.0, 0.0, 0.85);
+				ctx.glass('hatch').addScratch(0.0, 0.0, 0.85, 'MAW_PRESS');
 			}
 
 			const pressP = (progress - 0.25) / 0.40;

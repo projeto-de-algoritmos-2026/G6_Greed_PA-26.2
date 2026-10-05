@@ -99,8 +99,9 @@ export class AuxMonitor {
 		const auxBlinkInterval = 0.45;
 		const auxBlinkNeedsUpdate = elapsedTime - this.lastAuxBlinkTime >= auxBlinkInterval;
 		const isBooting = this.auxCanvas.booting;
+		const hasToast = this.auxCanvas.hasActiveToast;
 
-		if (state && (this.isDirty || isBooting || auxBlinkNeedsUpdate)) {
+		if (state && (this.isDirty || isBooting || hasToast || auxBlinkNeedsUpdate)) {
 			this.auxCanvas.render(state, delta);
 			this.auxTexture.needsUpdate = true;
 			this.isDirty = false;

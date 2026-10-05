@@ -163,6 +163,16 @@ export class Terminal3DManager {
 		return this.aux.auxCanvas;
 	}
 
+	public showAuxToast(msg: string): void {
+		this.aux.auxCanvas.showToast(msg);
+		this.aux.markDirty();
+	}
+
+	public switchAuxTab(tab: 'logs' | 'minheap' | 'report'): void {
+		this.aux.auxCanvas.switchTab(tab);
+		this.aux.markDirty();
+	}
+
 	public setAudioEngine(engine: ProceduralAudioEngine): void {
 		this.audioEngine = engine;
 		this.eventDirector.setAudioEngine(engine);
@@ -209,9 +219,17 @@ export class Terminal3DManager {
 		this.cameraRig.resetCabinView();
 	}
 
+	public snapCamera(): void {
+		this.cameraRig.snapToTarget();
+	}
+
 	public openCabinet(): void {
 		this.cabinet.open();
 		this.audioEngine?.playCabinetDoor(true);
+	}
+
+	public snapCabinetOpen(): void {
+		this.cabinet.snapOpen();
 	}
 
 	public closeCabinet(): void {

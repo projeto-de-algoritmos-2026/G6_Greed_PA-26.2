@@ -159,10 +159,10 @@ export class CabinCameraRig {
 	}
 
 	public focusManual(): void {
-		this.targetCamPos.set(-3.2, 0.48, 2.3);
+		this.targetCamPos.set(-3.35, 0.48, 2.30);
 		this.targetYaw = Math.PI / 2;
 		this.targetPitch = 0.0;
-		this.targetFov = 40;
+		this.targetFov = 50;
 		this.onFocusChangeCb?.('manual');
 	}
 
@@ -175,11 +175,23 @@ export class CabinCameraRig {
 	}
 
 	public focusPoster(): void {
-		this.targetCamPos.set(-4.3, 1.05, -0.9);
+		this.targetCamPos.set(-4.30, 1.05, -0.90);
 		this.targetYaw = 0.0;
 		this.targetPitch = 0.0;
-		this.targetFov = 46;
+		this.targetFov = 52;
 		this.onFocusChangeCb?.('poster');
+	}
+
+	public snapToTarget(): void {
+		this.currentCamPos.copy(this.targetCamPos);
+		this.currentYaw = this.targetYaw;
+		this.currentPitch = this.targetPitch;
+		this.currentFov = this.targetFov;
+		this.camera.fov = this.currentFov;
+		this.camera.position.copy(this.currentCamPos);
+		this.camera.rotation.y = this.currentYaw;
+		this.camera.rotation.x = this.currentPitch;
+		this.camera.updateProjectionMatrix();
 	}
 
 	public resetCabinView(): void {

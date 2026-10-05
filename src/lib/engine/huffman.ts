@@ -1,7 +1,25 @@
 import { MinHeap } from './minHeap';
-import type { HuffmanMetrics, HuffmanNode, MergeRecord } from './types';
+import type {
+	HuffmanMetrics,
+	HuffmanNode,
+	MergeRecord,
+	PriorityQueueItem,
+	PriorityQueueSnapshot,
+	GreedyAdvice,
+	CharacterCodeReport,
+	AcademicReport
+} from './types';
 
-export type { HuffmanMetrics, HuffmanNode, MergeRecord };
+export type {
+	HuffmanMetrics,
+	HuffmanNode,
+	MergeRecord,
+	PriorityQueueItem,
+	PriorityQueueSnapshot,
+	GreedyAdvice,
+	CharacterCodeReport,
+	AcademicReport
+};
 export { MinHeap };
 
 export class HuffmanEngine {
@@ -344,5 +362,205 @@ export class HuffmanEngine {
 		const weights = [nodeA.weight, nodeB.weight].sort((a, b) => a - b);
 		return weights[0] === minWeight1 && weights[1] <= minWeight2;
 	}
+
+	public getNodeLabel(node: HuffmanNode): string {
+		if (node.isLeaf && node.char !== null) {
+			return node.char === ' ' ? '[SPC]' : `'${node.char}'`;
+		}
+		return `Σ${node.weight}`;
+	}
+
+	public getPriorityQueueSnapshot(): PriorityQueueSnapshot {
+		const sorted = [...this.availableNodes].sort((a, b) => {
+			if (a.weight !== b.weight) return a.weight - b.weight;
+			const charA = a.char || a.id;
+			const charB = b.char || b.id;
+			return charA.localeCompare(charB);
+		});
+
+		const topTwoMinIds: [string, string] | null =
+			sorted.length >= 2 ? [sorted[0].id, sorted[1].id] : null;
+
+		const items = sorted.map((node, index) => ({
+			id: node.id,
+			label: this.getNodeLabel(node),
+			weight: node.weight,
+			isLeaf: node.isLeaf,
+			isOptimalNextMin: index < 2
+		}));
+
+		let recommendationExplanation = '';
+		if (sorted.length >= 2) {
+			const n1 = sorted[0];
+			const n2 = sorted[1];
+			recommendationExplanation = `REGRA DA ESCOLHA AMBICIOSA: Os dois menores nós atuais são ${this.getNodeLabel(n1)} (peso ${n1.weight}) e ${this.getNodeLabel(n2)} (peso ${n2.weight}). Fundi-los primeiro garante que fiquem no nível mais profundo da árvore, minimizando o custo total ponderado.`;
+		} else if (sorted.length === 1) {
+			recommendationExplanation = 'ÁRVORE COMPLETA: Todos os símbolos foram unificados em uma única raiz.';
+		} else {
+			recommendationExplanation = 'Fila vazia.';
+		}
+
+		return {
+			items,
+			topTwoMinIds,
+			recommendationExplanation
+		};
+	}
+
+	public getGreedyAdvice(): GreedyAdvice | null {
+		if (this.availableNodes.length < 2) return null;
+
+		const sorted = [...this.availableNodes].sort((a, b) => {
+			if (a.weight !== b.weight) return a.weight - b.weight;
+			const charA = a.char || a.id;
+			const charB = b.char || b.id;
+			return charA.localeCompare(charB);
+		});
+
+		const a = sorted[0];
+		const b = sorted[1];
+		const sumWeight = a.weight + b.weight;
+		const labelA = this.getNodeLabel(a);
+		const labelB = this.getNodeLabel(b);
+
+		return {
+			idA: a.id,
+			idB: b.id,
+			labelA,
+			labelB,
+			weightA: a.weight,
+			weightB: b.weight,
+			sumWeight,
+			explanation: `Os nós ${labelA} (${a.weight}) e ${labelB} (${b.weight}) são os 2 menores da Min-Heap. Fundi-los gerará um nó pai de peso ${sumWeight}.`,
+			theoreticPrinciple:
+				'Propriedade da Escolha Ambiciosa: Existe uma árvore de prefixos ótima onde os dois caracteres menos frequentes são folhas irmãs na maior profundidade.'
+		};
+	}
+
+	public generateAsciiTree(node: HuffmanNode | null = this.playerRoot || this.optimalRoot, prefix: string = '', isLeft: boolean = true): string {
+		if (!node) return '(árvore vazia)';
+
+		let result = '';
+		const connector = prefix === '' ? '└── ' : isLeft ? '├── 0: ' : '└── 1: ';
+		const label = node.isLeaf && node.char !== null
+			? `${this.getNodeLabel(node)} [peso: ${node.weight}, cód: "${node.code || ''}"]`
+			: `[sub-raiz w:${node.weight}]`;
+
+		result += prefix + connector + label + '\n';
+
+		const childPrefix = prefix + (prefix === '' ? '    ' : isLeft ? '│   ' : '    ');
+		if (node.left) {
+			result += this.generateAsciiTree(node.left, childPrefix, true);
+		}
+		if (node.right) {
+			result += this.generateAsciiTree(node.right, childPrefix, false);
+		}
+
+		return result;
+	}
+
+	public generateAcademicReport(): AcademicReport {
+		const metrics = this.getMetrics();
+		const totalChars = this.message.length;
+
+		// Calculate Shannon Entropy: H(X) = -sum(p_i * log2(p_i))
+		let shannonEntropy = 0;
+		for (const freq of this.frequencies.values()) {
+			if (freq > 0 && totalChars > 0) {
+				const p = freq / totalChars;
+				shannonEntropy -= p * Math.log2(p);
+			}
+		}
+		shannonEntropy = Math.round(shannonEntropy * 1000) / 1000;
+
+		// Character table
+		const sortedChars = Array.from(this.frequencies.entries()).sort((a, b) => b[1] - a[1]);
+		const characterTable: CharacterCodeReport[] = sortedChars.map(([ch, freq]) => {
+			const playerCode = this.playerCodes.get(ch) || '-';
+			const optimalCode = this.optimalCodes.get(ch) || '-';
+			return {
+				char: ch === ' ' ? '[ESPAÇO]' : ch,
+				frequency: freq,
+				playerCode,
+				playerBitLen: playerCode !== '-' ? playerCode.length : 8,
+				optimalCode,
+				optimalBitLen: optimalCode !== '-' ? optimalCode.length : 8
+			};
+		});
+
+		const averageCodeLength =
+			totalChars > 0 && metrics.playerBits > 0
+				? Math.round((metrics.playerBits / totalChars) * 1000) / 1000
+				: 8;
+
+		const redundancyBits = Math.max(0, Math.round((averageCodeLength - shannonEntropy) * 1000) / 1000);
+
+		const asciiTree = this.generateAsciiTree();
+
+		// Markdown report
+		let md = `# RELATÓRIO TÉCNICO // ALGORITMO AMBICIOSO DE HUFFMAN\n`;
+		md += `> **Estação Tartarus-V // Módulo de Transmissão Acústica Sonarwave**\n\n`;
+		md += `## 1. Dados da Mensagem\n`;
+		md += `- **Texto:** \`"${this.message}"\`\n`;
+		md += `- **Comprimento total ($N$):** ${totalChars} caracteres\n`;
+		md += `- **Símbolos distintos ($|\\Sigma|$):** ${this.frequencies.size} símbolos\n`;
+		md += `- **Entropia de Shannon $H(X)$:** ${shannonEntropy} bits/símbolo\n\n`;
+
+		md += `## 2. Comparativo de Custo e Compressão\n`;
+		md += `| Métrica | Valor |\n`;
+		md += `| :--- | :--- |\n`;
+		md += `| **ASCII Fixo (8 bits/char)** | ${metrics.rawAsciiBits} bits |\n`;
+		md += `| **Código do Jogador (Sonarwave)** | ${metrics.playerBits} bits |\n`;
+		md += `| **Cota Mínima Ótima (Huffman)** | ${metrics.optimalBits} bits |\n`;
+		md += `| **Eficiência Ambiciosa** | ${metrics.efficiency}% |\n`;
+		md += `| **Taxa de Compressão vs ASCII** | ${metrics.compressionRatio}% |\n`;
+		md += `| **Comprimento Médio ($\\bar{L}$)** | ${averageCodeLength} bits/símbolo |\n`;
+		md += `| **Redundância ($\\bar{L} - H(X)$)** | ${redundancyBits} bits |\n\n`;
+
+		md += `## 3. Tabela de Frequência e Dicionário de Prefixos\n\n`;
+		md += `| Caractere | Frequência | Probabilidade | Código do Jogador | Comprimento | Código Ótimo |\n`;
+		md += `| :---: | :---: | :---: | :---: | :---: | :---: |\n`;
+		for (const row of characterTable) {
+			const prob = totalChars > 0 ? ((row.frequency / totalChars) * 100).toFixed(1) + '%' : '0%';
+			md += `| \`${row.char}\` | ${row.frequency} | ${prob} | \`${row.playerCode}\` | ${row.playerBitLen} | \`${row.optimalCode}\` |\n`;
+		}
+		md += `\n## 4. Estrutura da Árvore de Prefixos (Diagrama ASCII)\n\n\`\`\`text\n`;
+		md += asciiTree;
+		md += `\`\`\`\n\n`;
+		md += `*Gerado pelo simulador SONARWAVE - Algoritmos Ambiciosos (Greedy/Huffman)*\n`;
+
+		const json = JSON.stringify(
+			{
+				message: this.message,
+				metrics,
+				shannonEntropy,
+				averageCodeLength,
+				redundancyBits,
+				characterTable,
+				treeRoot: this.playerRoot || this.optimalRoot
+			},
+			null,
+			2
+		);
+
+		return {
+			message: this.message,
+			characterCount: totalChars,
+			distinctCharacters: this.frequencies.size,
+			shannonEntropy,
+			rawAsciiBits: metrics.rawAsciiBits,
+			playerBits: metrics.playerBits,
+			optimalBits: metrics.optimalBits,
+			efficiencyPct: metrics.efficiency,
+			compressionRatioPct: metrics.compressionRatio,
+			averageCodeLength,
+			redundancyBits,
+			characterTable,
+			asciiTree,
+			markdown: md,
+			json
+		};
+	}
 }
+
 
