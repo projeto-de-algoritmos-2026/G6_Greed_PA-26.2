@@ -21,20 +21,22 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 		canvas.height = 512;
 		const ctx = canvas.getContext('2d')!;
 
-		ctx.fillStyle = '#222d36';
+		// Base submarine steel-blue
+		ctx.fillStyle = '#263b4d';
 		ctx.fillRect(0, 0, 512, 512);
 
 		const imgData = ctx.getImageData(0, 0, 512, 512);
 		const d = imgData.data;
 		for (let i = 0; i < d.length; i += 4) {
-			const noise = (Math.random() - 0.5) * 22;
-			d[i] = Math.max(22, Math.min(62, 34 + noise));
-			d[i + 1] = Math.max(28, Math.min(74, 44 + noise * 1.1));
-			d[i + 2] = Math.max(36, Math.min(88, 54 + noise * 1.2));
+			const noise = (Math.random() - 0.5) * 26;
+			d[i] = Math.max(25, Math.min(80, 42 + noise * 0.8)); // R
+			d[i + 1] = Math.max(40, Math.min(115, 68 + noise * 1.0)); // G
+			d[i + 2] = Math.max(60, Math.min(155, 96 + noise * 1.3)); // B (distinctly blue)
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
+		// Metallic scratches and horizontal grain
+		ctx.strokeStyle = 'rgba(180, 215, 245, 0.06)';
 		ctx.lineWidth = 1;
 		for (let y = 0; y < 512; y += 3) {
 			if (Math.random() < 0.6) {
@@ -45,7 +47,7 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 			}
 		}
 
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+		ctx.strokeStyle = 'rgba(210, 235, 255, 0.10)';
 		for (let s = 0; s < 45; s++) {
 			const sx = Math.random() * 512;
 			const sy = Math.random() * 512;
@@ -57,7 +59,46 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 			ctx.stroke();
 		}
 
-		ctx.fillStyle = 'rgba(10, 16, 22, 0.35)';
+		// Procedural rust patches and corrosion spots
+		const rustColors = [
+			'rgba(168, 76, 26, 0.44)',
+			'rgba(135, 58, 18, 0.48)',
+			'rgba(192, 94, 32, 0.38)',
+			'rgba(94, 40, 14, 0.55)'
+		];
+
+		for (let p = 0; p < 16; p++) {
+			const px = Math.random() * 512;
+			const py = Math.random() * 512;
+			const pr = 16 + Math.random() * 46;
+			const grad = ctx.createRadialGradient(px, py, pr * 0.1, px, py, pr);
+			const col = rustColors[p % rustColors.length];
+			grad.addColorStop(0, col);
+			grad.addColorStop(0.55, 'rgba(125, 52, 18, 0.28)');
+			grad.addColorStop(1, 'rgba(38, 59, 77, 0)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(px, py, pr, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		// Vertical rust drips running down metal seams
+		for (let d = 0; d < 20; d++) {
+			const dx = Math.random() * 512;
+			const dy = Math.random() * 180;
+			const dLen = 70 + Math.random() * 250;
+			const dW = 3 + Math.random() * 7;
+			const grad = ctx.createLinearGradient(dx, dy, dx, dy + dLen);
+			grad.addColorStop(0, 'rgba(172, 80, 28, 0.56)');
+			grad.addColorStop(0.35, 'rgba(138, 60, 20, 0.42)');
+			grad.addColorStop(0.8, 'rgba(96, 42, 15, 0.22)');
+			grad.addColorStop(1, 'rgba(96, 42, 15, 0)');
+			ctx.fillStyle = grad;
+			ctx.fillRect(dx - dW / 2, dy, dW, dLen);
+		}
+
+		// Deep water grime stains
+		ctx.fillStyle = 'rgba(10, 20, 28, 0.35)';
 		for (let r = 0; r < 8; r++) {
 			const rx = Math.random() * 512;
 			const rw = 12 + Math.random() * 30;
@@ -76,20 +117,41 @@ export function createDarkRibTexture(): THREE.CanvasTexture {
 		canvas.height = 256;
 		const ctx = canvas.getContext('2d')!;
 
-		ctx.fillStyle = '#18222b';
+		// Base dark submarine navy steel
+		ctx.fillStyle = '#1c2e3d';
 		ctx.fillRect(0, 0, 256, 256);
 
 		const imgData = ctx.getImageData(0, 0, 256, 256);
 		const d = imgData.data;
 		for (let i = 0; i < d.length; i += 4) {
-			const n = (Math.random() - 0.5) * 16;
-			d[i] = Math.max(16, Math.min(48, 26 + n));
-			d[i + 1] = Math.max(22, Math.min(58, 34 + n));
-			d[i + 2] = Math.max(28, Math.min(68, 42 + n));
+			const n = (Math.random() - 0.5) * 18;
+			d[i] = Math.max(20, Math.min(65, 32 + n * 0.8)); // R
+			d[i + 1] = Math.max(30, Math.min(85, 52 + n * 1.0)); // G
+			d[i + 2] = Math.max(45, Math.min(120, 78 + n * 1.3)); // B (distinctly blue)
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.10)';
+		// Rust on structural seams
+		ctx.fillStyle = 'rgba(152, 68, 24, 0.38)';
+		ctx.fillRect(0, 0, 256, 6);
+		ctx.fillRect(0, 250, 256, 6);
+		ctx.fillRect(0, 0, 6, 256);
+		ctx.fillRect(250, 0, 6, 256);
+
+		for (let c = 0; c < 8; c++) {
+			const cx = Math.random() * 256;
+			const cy = Math.random() * 256;
+			const cr = 6 + Math.random() * 18;
+			const grad = ctx.createRadialGradient(cx, cy, 1, cx, cy, cr);
+			grad.addColorStop(0, 'rgba(168, 76, 28, 0.46)');
+			grad.addColorStop(1, 'rgba(28, 46, 61, 0)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+			ctx.fill();
+		}
+
+		ctx.strokeStyle = 'rgba(180, 215, 245, 0.12)';
 		ctx.lineWidth = 2;
 		ctx.strokeRect(1, 1, 254, 254);
 

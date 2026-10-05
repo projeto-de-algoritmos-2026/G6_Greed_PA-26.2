@@ -102,10 +102,11 @@ export class CRTMonitor {
 	}
 
 	public updateScreen(state: TerminalScreenState | null, delta: number, elapsedTime: number): void {
-		const hydrophoneInterval = 0.045;
+		const isBooting = this.terminalCanvas.booting;
+		const hydrophoneInterval = state?.isGameOver ? 0.5 : 0.045;
 		const hydrophoneNeedsUpdate = elapsedTime - this.lastHydrophoneTime >= hydrophoneInterval;
 
-		if (state && (this.isDirty || hydrophoneNeedsUpdate)) {
+		if (state && (this.isDirty || isBooting || hydrophoneNeedsUpdate)) {
 			this.terminalCanvas.render(state, delta);
 			this.screenTexture.needsUpdate = true;
 			this.isDirty = false;

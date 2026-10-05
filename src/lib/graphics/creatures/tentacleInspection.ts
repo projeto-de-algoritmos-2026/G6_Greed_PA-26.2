@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import type { WindowEventActor, EventContext, StartOptions } from '../types';
 import { createTentacleSkinTexture, createMawFleshTexture } from '../textures/procedural';
 
+const _tangent = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+const _quat = new THREE.Quaternion();
+
 interface SegmentNode {
 	group: THREE.Group;
 	bodyMesh: THREE.Mesh;
@@ -22,6 +26,7 @@ export class TentacleInspectionActor implements WindowEventActor {
 
 	private tentacleContainer: THREE.Group;
 	private segments: SegmentNode[] = [];
+	private cachedSegPositions: THREE.Vector3[] = [];
 	private numSegments: number = 34;
 
 	private elapsed: number = 0;
@@ -119,6 +124,7 @@ export class TentacleInspectionActor implements WindowEventActor {
 				rightSuckerRim: rightSucker.rim,
 				radius
 			});
+			this.cachedSegPositions.push(new THREE.Vector3());
 		}
 	}
 
@@ -173,6 +179,27 @@ export class TentacleInspectionActor implements WindowEventActor {
 		return true;
 	}
 
+	/**
+	 * Calculates the exterior surface Z of the submarine hull in hatchPivot coordinates.
+	 * Prevents tentacle segments from clipping into the curved cabin ceiling above the window.
+	 */
+	private getHullExteriorZ(y: number): number {
+		// Window opening extends between y = -1.18 and +1.18
+		if (y <= 1.18 && y >= -1.18) {
+			return 0.0;
+		}
+		// Submarine hull is a cylinder centered at cabin Y = -0.6, radius ~5.25.
+		// In hatchPivot space: Y_cabin = y + 0.95 => dY = y + 1.55.
+		const dY = Math.abs(y + 1.55);
+		const hullRadius = 5.25;
+		if (dY < hullRadius) {
+			const xCabin = Math.sqrt(hullRadius * hullRadius - dY * dY);
+			// hatchPivot is at X = 4.75 in cabin
+			return xCabin - 4.75;
+		}
+		return -2.5;
+	}
+
 	private updateSpine(progress: number, dt: number, ctx: EventContext): void {
 
 		let crawlIntensity = 0;
@@ -210,16 +237,16 @@ export class TentacleInspectionActor implements WindowEventActor {
 			glassContact = Math.max(0, 1.0 - leaveP * 2.5);
 		}
 
-		const baseX = 2.75;
-		const baseY = 2.45;
-		const baseZ = -0.35;
+		// Base anchored on the exterior of the hull above the window frame
+		const baseX = 2.65;
+		const baseY = 1.95;
+		const baseZ = this.getHullExteriorZ(baseY) - 0.55;
 
 		const waveTime = this.elapsed * 2.2;
 		const tipTargetX = 0.8 - crawlIntensity * 2.6 + Math.sin(waveTime * 0.8) * 0.45;
 		const tipTargetY = 1.2 - crawlIntensity * 2.2 + Math.cos(waveTime * 0.7) * 0.35;
 
 		const numNodes = this.segments.length;
-		const segPositions: THREE.Vector3[] = [];
 
 		for (let s = 0; s < numNodes; s++) {
 			const u = s / (numNodes - 1);
@@ -234,37 +261,35 @@ export class TentacleInspectionActor implements WindowEventActor {
 
 			const segContactWeight = Math.min(1.0, Math.max(0.0, (u - 0.15) * 1.8)) * glassContact;
 
-			const oceanDepth = -0.35 - (1.0 - crawlIntensity) * 2.2 - Math.sin(u * Math.PI) * 0.35;
+			const hullZ = this.getHullExteriorZ(y);
+			const oceanDepth = Math.min(hullZ - 0.45, -0.65 - (1.0 - crawlIntensity) * 2.2 - Math.sin(u * Math.PI) * 0.35);
 			const contactDepth = -0.018 - r;
 
 			const targetZ = THREE.MathUtils.lerp(oceanDepth, contactDepth, segContactWeight);
 
-			const maxAllowedZ = -0.018 - r;
+			// Strict clamp: never allow penetration through window glass OR curved cabin ceiling hull
+			const maxAllowedZ = Math.min(-0.018 - r, hullZ - r - 0.05);
 			const clampedZ = Math.min(maxAllowedZ, targetZ);
 
-			segPositions.push(new THREE.Vector3(x, y, clampedZ));
+			this.cachedSegPositions[s].set(x, y, clampedZ);
 		}
 
 		for (let s = 0; s < numNodes; s++) {
 			const seg = this.segments[s];
-			const pos = segPositions[s];
+			const pos = this.cachedSegPositions[s];
 
 			seg.group.position.copy(pos);
 
-			let tangent: THREE.Vector3;
 			if (s < numNodes - 1) {
-				tangent = new THREE.Vector3().subVectors(segPositions[s + 1], pos);
+				_tangent.subVectors(this.cachedSegPositions[s + 1], pos);
 			} else {
-				tangent = new THREE.Vector3().subVectors(pos, segPositions[s - 1]);
+				_tangent.subVectors(pos, this.cachedSegPositions[s - 1]);
 			}
 
-			if (tangent.lengthSq() > 0.0001) {
-				tangent.normalize();
-
-				const up = new THREE.Vector3(0, 1, 0);
-				const quat = new THREE.Quaternion().setFromUnitVectors(up, tangent);
-				seg.group.quaternion.copy(quat);
-
+			if (_tangent.lengthSq() > 0.0001) {
+				_tangent.normalize();
+				_quat.setFromUnitVectors(_up, _tangent);
+				seg.group.quaternion.copy(_quat);
 			}
 
 			const u = s / (numNodes - 1);

@@ -11,14 +11,14 @@ export class RearHatch {
 		this.group.rotation.y = Math.PI;
 
 		const darkRibMat = new THREE.MeshLambertMaterial({
-			color: 0x202b34,
+			color: 0x547998,
 			map: createDarkRibTexture()
 		});
 		const steelWallMat = new THREE.MeshLambertMaterial({
-			color: 0x32424e,
+			color: 0x6e9ec0,
 			map: createHullMetalTexture()
 		});
-		const redValveMat = new THREE.MeshLambertMaterial({ color: 0x9e1e1e });
+		const redValveMat = new THREE.MeshLambertMaterial({ color: 0xcc2929 });
 
 		const frame = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.14, 16, 32), darkRibMat);
 		const door = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.12, 32), steelWallMat);

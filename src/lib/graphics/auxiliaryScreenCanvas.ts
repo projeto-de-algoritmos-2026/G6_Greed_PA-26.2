@@ -1,3 +1,5 @@
+import { terminalLogo } from './terminalLogo';
+
 export interface AuxiliaryScreenState {
 	depth: number;
 	pressureAtm: number;
@@ -23,6 +25,7 @@ export type AuxActionCallback = (action:
 	| { type: 'TOGGLE_FOCUS' }
 	| { type: 'FOCUS_AUX' }
 	| { type: 'TOGGLE_MUTE' }
+	| { type: 'REBOOT' }
 ) => void;
 
 interface InteractiveRect {
@@ -44,6 +47,10 @@ export class AuxiliaryScreenCanvas {
 	private blinkTimer: number = 0;
 	private scanlinePattern: CanvasPattern | null = null;
 
+	private isBooting: boolean = true;
+	private bootTime: number = 0;
+	public readonly bootDuration: number = 3.6;
+
 	constructor() {
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.width;
@@ -59,11 +66,30 @@ export class AuxiliaryScreenCanvas {
 		this.scanlinePattern = this.ctx.createPattern(patCanvas, 'repeat');
 	}
 
+	public triggerBoot(): void {
+		this.isBooting = true;
+		this.bootTime = 0;
+	}
+
+	public skipBoot(): void {
+		this.isBooting = false;
+		this.bootTime = this.bootDuration;
+	}
+
+	public get booting(): boolean {
+		return this.isBooting;
+	}
+
 	public setActionCallback(cb: AuxActionCallback): void {
 		this.onAction = cb;
 	}
 
 	public handleClickUV(u: number, v: number): boolean {
+		if (this.isBooting) {
+			this.skipBoot();
+			return true;
+		}
+
 		const canvasX = u * this.width;
 		const canvasY = (1 - v) * this.height;
 
@@ -85,6 +111,11 @@ export class AuxiliaryScreenCanvas {
 		const ctx = this.ctx;
 		this.interactiveRects = [];
 		this.blinkTimer += delta * 3.2;
+
+		if (this.isBooting) {
+			this.renderBootScreen(ctx, state, delta);
+			return;
+		}
 
 		ctx.fillStyle = '#0f0700';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -393,8 +424,8 @@ export class AuxiliaryScreenCanvas {
 	private renderSystemCommands(ctx: CanvasRenderingContext2D, state: AuxiliaryScreenState): void {
 		const y = 690;
 		const totalW = this.width - 40;
-		const gap = 12;
-		const w = (totalW - gap * 2) / 3;
+		const gap = 10;
+		const w = (totalW - gap * 3) / 4;
 
 		const isAuxFocused = state.focusedScreen === 'aux';
 		const isMainFocused = state.focusedScreen === 'main';
@@ -429,11 +460,49 @@ export class AuxiliaryScreenCanvas {
 			y,
 			w,
 			48,
+			'[ ↻ REINICIAR (B) ]',
+			'Reiniciar terminais',
+			false,
+			() => this.onAction?.({ type: 'REBOOT' })
+		);
+
+		this.renderTeletypeCommand(
+			ctx,
+			20 + (w + gap) * 3,
+			y,
+			w,
+			48,
 			state.isMuted ? '[ ÁUDIO: MUDO ]' : '[ ÁUDIO: ATIVO ]',
 			'[M] Alternar som',
 			false,
 			() => this.onAction?.({ type: 'TOGGLE_MUTE' })
 		);
+	}
+
+	private renderBootScreen(
+		ctx: CanvasRenderingContext2D,
+		_state: AuxiliaryScreenState,
+		delta: number
+	): void {
+		this.bootTime += delta;
+		if (this.bootTime >= this.bootDuration) {
+			this.isBooting = false;
+			return;
+		}
+
+		terminalLogo.drawXPBootScreen(ctx, {
+			width: this.width,
+			height: this.height,
+			bootTime: this.bootTime,
+			bootDuration: this.bootDuration,
+			theme: 'amber',
+			titleMain: 'TARTARUS',
+			titleXP: 'xp',
+			subtitle: 'Teletype Edition',
+			companyName: 'A U X I L I A R Y   T E L E M E T R Y   U N I T',
+			copyrightText: 'Cephalo-Systems Corporation // Console B Subsystem',
+			accentColor: '#ff7a00'
+		});
 	}
 }
 

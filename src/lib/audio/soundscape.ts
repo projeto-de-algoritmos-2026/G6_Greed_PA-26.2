@@ -97,6 +97,10 @@ export class ProceduralAudioEngine {
 		this.uiSounds.playCabinetDoor(this.ctx, this.masterGain, this.isMuted, isOpen);
 	}
 
+	public playBootSound(): void {
+		this.uiSounds.playBootSound(this.ctx, this.masterGain, this.isMuted);
+	}
+
 	public playDeepWaterSurge(intensity: number = 1.0, pan: number = 0): void {
 		this.creatureSounds.playDeepWaterSurge(this.ctx, this.masterGain, this.isMuted, intensity, pan);
 	}

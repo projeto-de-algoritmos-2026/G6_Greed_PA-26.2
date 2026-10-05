@@ -6,6 +6,7 @@ export interface DevPanelCallbacks {
 	onSetProximity: (proximity: number) => void;
 	onTogglePostFx?: (enabled: boolean) => void;
 	onFocusTarget: (target: CabinFocusTarget) => void;
+	onSetCabinLuminosity?: (multiplier: number) => void;
 }
 
 export class DevPanel {
@@ -98,6 +99,78 @@ export class DevPanel {
 		slider.style.marginBottom = '12px';
 		slider.oninput = (e) => cb.onSetProximity(Number((e.target as HTMLInputElement).value));
 		panel.appendChild(slider);
+
+		const lumTitle = document.createElement('div');
+		lumTitle.innerText = '--- LUMINOSIDADE DA CABINE ---';
+		lumTitle.style.color = '#ffaa33';
+		lumTitle.style.fontWeight = 'bold';
+		lumTitle.style.marginBottom = '4px';
+		panel.appendChild(lumTitle);
+
+		const lumHeaderRow = document.createElement('div');
+		lumHeaderRow.style.display = 'flex';
+		lumHeaderRow.style.justifyContent = 'space-between';
+		lumHeaderRow.style.marginBottom = '4px';
+
+		const lumLabel = document.createElement('span');
+		lumLabel.innerText = 'Brilho da Cabine:';
+		lumLabel.style.color = '#88ddcc';
+		lumLabel.style.fontSize = '11px';
+
+		const lumVal = document.createElement('span');
+		lumVal.innerText = '100%';
+		lumVal.style.color = '#ffea78';
+		lumVal.style.fontWeight = 'bold';
+		lumVal.style.fontSize = '11px';
+
+		lumHeaderRow.appendChild(lumLabel);
+		lumHeaderRow.appendChild(lumVal);
+		panel.appendChild(lumHeaderRow);
+
+		const lumSlider = document.createElement('input');
+		lumSlider.type = 'range';
+		lumSlider.min = '20';
+		lumSlider.max = '300';
+		lumSlider.value = '100';
+		lumSlider.style.width = '100%';
+		lumSlider.style.marginBottom = '6px';
+		lumSlider.oninput = (e) => {
+			const v = Number((e.target as HTMLInputElement).value);
+			lumVal.innerText = `${v}%`;
+			cb.onSetCabinLuminosity?.(v / 100);
+		};
+		panel.appendChild(lumSlider);
+
+		const lumPresetsRow = document.createElement('div');
+		lumPresetsRow.style.display = 'flex';
+		lumPresetsRow.style.gap = '4px';
+		lumPresetsRow.style.marginBottom = '12px';
+
+		const lumPresets = [
+			{ label: '50%', val: 50 },
+			{ label: '100%', val: 100 },
+			{ label: '150%', val: 150 },
+			{ label: '220%', val: 220 }
+		];
+		lumPresets.forEach((p) => {
+			const btn = document.createElement('button');
+			btn.innerText = p.label;
+			btn.style.flex = '1';
+			btn.style.padding = '3px 2px';
+			btn.style.fontSize = '10px';
+			btn.style.background = '#142226';
+			btn.style.color = '#ffea78';
+			btn.style.border = '1px solid #224440';
+			btn.style.borderRadius = '3px';
+			btn.style.cursor = 'pointer';
+			btn.onclick = () => {
+				lumSlider.value = String(p.val);
+				lumVal.innerText = `${p.val}%`;
+				cb.onSetCabinLuminosity?.(p.val / 100);
+			};
+			lumPresetsRow.appendChild(btn);
+		});
+		panel.appendChild(lumPresetsRow);
 
 		const focusTitle = document.createElement('div');
 		focusTitle.innerText = '--- CÂMERA & VISÃO ---';

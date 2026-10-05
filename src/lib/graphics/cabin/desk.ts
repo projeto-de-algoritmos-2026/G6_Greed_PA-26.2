@@ -13,7 +13,7 @@ export class ConsoleDesk {
 	constructor() {
 		this.group = new THREE.Group();
 		const deskMat = new THREE.MeshLambertMaterial({
-			color: 0x2c3b48,
+			color: 0x587e9c,
 			map: createDarkRibTexture()
 		});
 
@@ -28,12 +28,12 @@ export class ConsoleDesk {
 
 		const kb = new THREE.Mesh(
 			new THREE.BoxGeometry(2.4, 0.06, 0.6),
-			new THREE.MeshLambertMaterial({ color: 0x1c252e })
+			new THREE.MeshLambertMaterial({ color: 0x2e4252 })
 		);
 		kb.position.set(0, -1.08, 1.0);
 		this.group.add(kb);
 
-		const keyMat = new THREE.MeshLambertMaterial({ color: 0x3e5262 });
+		const keyMat = new THREE.MeshLambertMaterial({ color: 0x628aa8 });
 		const keyGroup = new THREE.Group();
 		for (let row = 0; row < 4; row++) {
 			for (let col = 0; col < 12; col++) {
@@ -56,7 +56,7 @@ export class ConsoleDesk {
 
 		const rim = new THREE.Mesh(
 			new THREE.CylinderGeometry(0.42, 0.42, 0.1, 24),
-			new THREE.MeshLambertMaterial({ color: 0x364654 })
+			new THREE.MeshLambertMaterial({ color: 0x587e9c })
 		);
 		rim.rotation.x = Math.PI / 2;
 

@@ -3,6 +3,7 @@
 	import { HuffmanEngine, LEVELS, type HuffmanMetrics, type HuffmanNode } from '$lib/engine';
 	import { ProceduralAudioEngine } from '$lib/audio';
 	import { Terminal3DManager, type CabinFocusTarget } from '$lib/graphics/terminal3d';
+	import GameOverOverlay from '$lib/components/GameOverOverlay.svelte';
 
 	let huffman = new HuffmanEngine();
 	let audio = new ProceduralAudioEngine();
@@ -95,6 +96,8 @@
 					else focusAuxiliaryMonitor();
 				} else if (action.type === 'TOGGLE_MUTE') {
 					toggleMute();
+				} else if (action.type === 'REBOOT') {
+					terminal3D?.triggerReboot();
 				}
 			});
 
@@ -138,6 +141,8 @@
 	});
 
 	function loadCurrentLevel(): void {
+		activateAudio();
+		audio.playRelayClick();
 		const text = isFreeMode ? customMessage : LEVELS[currentLevelIndex].message;
 		activeMessage = text;
 		selectedNodeIds = [];
@@ -151,6 +156,7 @@
 
 		terminal3D?.setPhase(isFreeMode ? 1 : ((currentLevelIndex + 1) as 1 | 2 | 3));
 		terminal3D?.notifyPlayerAction('LEVEL_LOAD');
+		terminal3D?.setAlarm(false);
 
 		huffman.loadMessage(text);
 		refreshState();
@@ -230,7 +236,11 @@
 		if (!isAudioStarted) {
 			await audio.init();
 			isAudioStarted = true;
-			audio.playRelayClick();
+			if (terminal3D?.isBooting()) {
+				audio.playBootSound();
+			} else {
+				audio.playRelayClick();
+			}
 		}
 	}
 
@@ -446,7 +456,25 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent): void {
+		if (isGameOver) {
+			if (e.key === 'r' || e.key === 'R' || e.code === 'Enter') {
+				e.preventDefault();
+				loadCurrentLevel();
+			}
+			return;
+		}
+
+		if (terminal3D?.isBooting()) {
+			terminal3D.skipBoot();
+			return;
+		}
+
 		if (isTransmitting) return;
+
+		if (e.key === 'b' || e.key === 'B') {
+			terminal3D?.triggerReboot();
+			return;
+		}
 
 		if (e.code === 'Space') {
 			e.preventDefault();
@@ -508,5 +536,17 @@
 			<span class="inline-block w-2 h-2 rounded-full bg-[#00ffcc] animate-ping"></span>
 			<span>MANUAL // [H] OU [ESC] VOLTAR</span>
 		</div>
+	{/if}
+
+	{#if isGameOver}
+		<GameOverOverlay
+			depth={currentLevel?.depth ?? 8000}
+			pressureAtm={currentLevel?.pressureAtm ?? 800}
+			transmittedBits={transmittedBits}
+			safeBitQuota={safeBitQuota}
+			efficiency={metrics.efficiency}
+			levelName={currentLevel?.name ?? 'MODO LIVRE'}
+			onRestart={loadCurrentLevel}
+		/>
 	{/if}
 </main>

@@ -69,3 +69,20 @@ export function createNoiseBuffer(ctx: AudioContext, duration: number): AudioBuf
 	return buffer;
 }
 
+export function autoCleanup(
+	source: AudioScheduledSourceNode,
+	...nodes: (AudioNode | null | undefined)[]
+): void {
+	source.onended = () => {
+		try {
+			source.disconnect();
+			for (const node of nodes) {
+				node?.disconnect();
+			}
+		} catch {
+			// already disconnected
+		}
+	};
+}
+
+

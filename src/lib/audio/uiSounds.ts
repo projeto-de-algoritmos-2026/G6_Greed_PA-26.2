@@ -1,3 +1,5 @@
+import { autoCleanup } from './helpers';
+
 export class UISoundSynthesizer {
 	public playSonarPing(
 		ctx: AudioContext | null,
@@ -40,6 +42,8 @@ export class UISoundSynthesizer {
 		delayFeedback.connect(delay);
 		delay.connect(masterGain);
 
+		autoCleanup(osc, filter, gain, delay, delayFeedback);
+
 		osc.start(now);
 		osc.stop(now + 0.6);
 	}
@@ -66,6 +70,8 @@ export class UISoundSynthesizer {
 		osc.connect(filter);
 		filter.connect(gain);
 		gain.connect(masterGain);
+
+		autoCleanup(osc, filter, gain);
 
 		osc.start(now);
 		osc.stop(now + 0.04);
@@ -95,6 +101,8 @@ export class UISoundSynthesizer {
 			osc.connect(gain);
 			gain.connect(masterGain);
 
+			autoCleanup(osc, gain);
+
 			osc.start(now + idx * 0.03);
 			osc.stop(now + 0.3);
 		});
@@ -116,6 +124,8 @@ export class UISoundSynthesizer {
 
 		osc.connect(gain);
 		gain.connect(masterGain);
+
+		autoCleanup(osc, gain);
 
 		osc.start(now);
 		osc.stop(now + 0.15);
@@ -141,6 +151,7 @@ export class UISoundSynthesizer {
 
 		osc.connect(gain);
 		gain.connect(masterGain);
+		autoCleanup(osc, gain);
 		osc.start(now);
 		osc.stop(now + 2.1);
 
@@ -165,6 +176,7 @@ export class UISoundSynthesizer {
 		noise.connect(filter);
 		filter.connect(noiseGain);
 		noiseGain.connect(masterGain);
+		autoCleanup(noise, filter, noiseGain);
 		noise.start(now);
 		noise.stop(now + 1.6);
 	}
@@ -188,6 +200,7 @@ export class UISoundSynthesizer {
 				gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.04);
 				osc.connect(gain);
 				gain.connect(masterGain);
+				autoCleanup(osc, gain);
 				osc.start(now + offset);
 				osc.stop(now + offset + 0.05);
 			}
@@ -211,6 +224,7 @@ export class UISoundSynthesizer {
 			hingeOsc.connect(hingeFilter);
 			hingeFilter.connect(hingeGain);
 			hingeGain.connect(masterGain);
+			autoCleanup(hingeOsc, hingeFilter, hingeGain);
 			hingeOsc.start(now + 0.05);
 			hingeOsc.stop(now + 0.65);
 		} else {
@@ -224,6 +238,7 @@ export class UISoundSynthesizer {
 
 			impactOsc.connect(impactGain);
 			impactGain.connect(masterGain);
+			autoCleanup(impactOsc, impactGain);
 			impactOsc.start(now);
 			impactOsc.stop(now + 0.25);
 
@@ -246,9 +261,62 @@ export class UISoundSynthesizer {
 			noise.connect(filter);
 			filter.connect(noiseGain);
 			noiseGain.connect(masterGain);
+			autoCleanup(noise, filter, noiseGain);
 			noise.start(now);
 			noise.stop(now + 0.2);
 		}
 	}
+
+	public playBootSound(ctx: AudioContext | null, masterGain: GainNode | null, isMuted: boolean): void {
+		if (!ctx || !masterGain || isMuted) return;
+
+		const now = ctx.currentTime;
+
+		// 1. Subtle analog relay click
+		this.playRelayClick(ctx, masterGain, isMuted);
+
+		// 2. Windows XP-inspired warm, lush harmonic chime chord
+		// Arpeggio notes: Eb3 (155.5Hz), Bb3 (233.1Hz), Eb4 (311.1Hz), G4 (392.0Hz), Bb4 (466.2Hz), Eb5 (622.3Hz)
+		const notes = [
+			{ freq: 155.56, time: 0.05, duration: 2.2, gain: 0.16, type: 'sine' as OscillatorType },
+			{ freq: 233.08, time: 0.20, duration: 2.0, gain: 0.15, type: 'sine' as OscillatorType },
+			{ freq: 311.13, time: 0.35, duration: 2.1, gain: 0.18, type: 'triangle' as OscillatorType },
+			{ freq: 392.00, time: 0.50, duration: 2.2, gain: 0.16, type: 'triangle' as OscillatorType },
+			{ freq: 466.16, time: 0.65, duration: 2.3, gain: 0.14, type: 'sine' as OscillatorType },
+			{ freq: 622.25, time: 0.78, duration: 2.0, gain: 0.08, type: 'sine' as OscillatorType }
+		];
+
+		const filter = ctx.createBiquadFilter();
+		filter.type = 'lowpass';
+		filter.frequency.setValueAtTime(1400, now);
+		filter.frequency.exponentialRampToValueAtTime(3200, now + 0.7);
+		filter.frequency.exponentialRampToValueAtTime(800, now + 2.5);
+		filter.connect(masterGain);
+
+		notes.forEach((n, idx) => {
+			const osc = ctx.createOscillator();
+			const g = ctx.createGain();
+
+			osc.type = n.type;
+			osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+			g.gain.setValueAtTime(0.0001, now + n.time);
+			g.gain.linearRampToValueAtTime(n.gain, now + n.time + 0.08);
+			g.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.duration);
+
+			osc.connect(g);
+			g.connect(filter);
+
+			if (idx === notes.length - 1) {
+				autoCleanup(osc, g, filter);
+			} else {
+				autoCleanup(osc, g);
+			}
+
+			osc.start(now + n.time);
+			osc.stop(now + n.time + n.duration + 0.1);
+		});
+	}
 }
+
 

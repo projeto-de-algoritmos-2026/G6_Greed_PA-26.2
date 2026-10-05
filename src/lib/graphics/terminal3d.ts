@@ -52,6 +52,8 @@ export class Terminal3DManager {
 	private currentPhase: ScenePhase = 1;
 	private animationFrameId: number = 0;
 	private clock: THREE.Clock;
+	private lastScreenState: TerminalScreenState | null = null;
+	private lastAuxState: AuxiliaryScreenState | null = null;
 
 	constructor(container: HTMLElement, canvas: HTMLCanvasElement) {
 		const width = container.clientWidth || 800;
@@ -134,6 +136,7 @@ export class Terminal3DManager {
 			onTriggerEvent: (type) => this.eventDirector.triggerEvent(type),
 			onSetPhase: (p) => this.setPhase(p),
 			onSetProximity: (prox) => this.updateGauges(800 + prox * 3, prox),
+			onSetCabinLuminosity: (mult) => this.setCabinLuminosity(mult),
 			onFocusTarget: (target) => {
 				if (target === 'main') this.focusMonitor();
 				else if (target === 'aux') this.focusAuxiliaryMonitor();
@@ -146,6 +149,10 @@ export class Terminal3DManager {
 
 		this.lighting.applyLightingMode(this.scene, this.currentPhase);
 		this.animate();
+	}
+
+	public setCabinLuminosity(mult: number): void {
+		this.lighting.setLuminosityMultiplier(mult);
 	}
 
 	public get terminalCanvas() {
@@ -269,11 +276,32 @@ export class Terminal3DManager {
 	}
 
 	public updateScreenState(state: TerminalScreenState): void {
+		this.lastScreenState = state;
 		this.crt.updateScreen(state, 0.016, this.clock.getElapsedTime());
 	}
 
 	public updateAuxScreenState(state: AuxiliaryScreenState): void {
+		this.lastAuxState = state;
 		this.aux.updateScreen(state, 0.016, this.clock.getElapsedTime());
+	}
+
+	public triggerReboot(): void {
+		this.crt.terminalCanvas.triggerBoot();
+		this.aux.auxCanvas.triggerBoot();
+		this.crt.markDirty();
+		this.aux.markDirty();
+		this.audioEngine?.playBootSound();
+	}
+
+	public skipBoot(): void {
+		this.crt.terminalCanvas.skipBoot();
+		this.aux.auxCanvas.skipBoot();
+		this.crt.markDirty();
+		this.aux.markDirty();
+	}
+
+	public isBooting(): boolean {
+		return this.crt.terminalCanvas.booting || this.aux.auxCanvas.booting;
 	}
 
 	public resize(width: number, height: number): void {
@@ -286,6 +314,13 @@ export class Terminal3DManager {
 
 		const delta = this.clock.getDelta();
 		const elapsedTime = this.clock.getElapsedTime();
+
+		if (this.lastScreenState) {
+			this.crt.updateScreen(this.lastScreenState, delta, elapsedTime);
+		}
+		if (this.lastAuxState) {
+			this.aux.updateScreen(this.lastAuxState, delta, elapsedTime);
+		}
 
 		this.desk.update(delta, elapsedTime);
 		this.cabinet.update();

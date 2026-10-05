@@ -22,11 +22,11 @@ export class MedCabinet {
 		const cabD = 0.32;
 
 		const ribTex = createDarkRibTexture();
-		const darkRibMat = new THREE.MeshLambertMaterial({ color: 0x1e272e, map: ribTex });
-		const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x161e1b });
-		const interiorMat = new THREE.MeshLambertMaterial({ color: 0x243029 });
-		const borderMat = new THREE.MeshLambertMaterial({ color: 0x2e3d34 });
-		const boltMat = new THREE.MeshLambertMaterial({ color: 0x51665a });
+		const darkRibMat = new THREE.MeshLambertMaterial({ color: 0x547998, map: ribTex });
+		const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x304959 });
+		const interiorMat = new THREE.MeshLambertMaterial({ color: 0x3b586c });
+		const borderMat = new THREE.MeshLambertMaterial({ color: 0x486c84 });
+		const boltMat = new THREE.MeshLambertMaterial({ color: 0x7ea3be });
 
 		const topFrame = new THREE.Mesh(new THREE.BoxGeometry(cabW + 0.12, 0.08, 0.06), darkRibMat);
 		topFrame.position.set(0, cabH / 2 + 0.04, cabD / 2);
@@ -189,21 +189,21 @@ export class MedCabinet {
 
 		const doorBody = new THREE.Mesh(
 			new THREE.BoxGeometry(cabW, cabH, 0.035),
-			new THREE.MeshLambertMaterial({ color: 0x1f2c25 })
+			new THREE.MeshLambertMaterial({ color: 0x3d6179 })
 		);
 
 		const panelBevel = new THREE.Mesh(
 			new THREE.BoxGeometry(cabW - 0.12, cabH - 0.12, 0.04),
-			new THREE.MeshLambertMaterial({ color: 0x17221d })
+			new THREE.MeshLambertMaterial({ color: 0x335165 })
 		);
 
-		const crossMat = new THREE.MeshLambertMaterial({ color: 0xb52222 });
+		const crossMat = new THREE.MeshLambertMaterial({ color: 0xcc2a2a });
 		const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.44, 0.015), crossMat);
 		crossV.position.set(0, 0.15, 0.025);
 		const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.12, 0.015), crossMat);
 		crossH.position.set(0, 0.15, 0.026);
 
-		const lockMat = new THREE.MeshLambertMaterial({ color: 0x485c51 });
+		const lockMat = new THREE.MeshLambertMaterial({ color: 0x7295ae });
 		const lockBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.03, 16), lockMat);
 		lockBase.rotation.x = Math.PI / 2;
 		lockBase.position.set(cabW / 2 - 0.14, 0, 0.03);

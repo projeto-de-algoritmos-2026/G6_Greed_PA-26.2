@@ -27,7 +27,7 @@ export class OpeningsManager {
 	constructor() {
 		this.group = new THREE.Group();
 		const darkRibMat = new THREE.MeshLambertMaterial({
-			color: 0x24323d,
+			color: 0x547998,
 			map: createDarkRibTexture()
 		});
 
@@ -57,7 +57,7 @@ export class OpeningsManager {
 		hatchPivot.add(topBar, botBar, leftBar, rightBar, rib1, rib2);
 
 		const boltGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.05, 8);
-		const boltMat = new THREE.MeshLambertMaterial({ color: 0x566977 });
+		const boltMat = new THREE.MeshLambertMaterial({ color: 0x7ea3be });
 		for (let i = 0; i <= 10; i++) {
 			const bx = -winW / 2 + (i / 10) * winW;
 			const boltT = new THREE.Mesh(boltGeo, boltMat);

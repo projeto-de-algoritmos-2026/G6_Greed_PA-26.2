@@ -27,6 +27,8 @@ import { QuartzImpactActor } from '../creatures/quartzImpact';
 import { ClawScrapeActor } from '../creatures/clawScrape';
 import { MawPressActor } from '../creatures/mawPress';
 
+const _dirCamDir = new THREE.Vector3();
+
 export class EventDirector {
 	private actors: Map<WindowEventType, WindowEventActor> = new Map();
 	private activeActor: WindowEventActor | null = null;
@@ -107,7 +109,13 @@ export class EventDirector {
 	}
 
 	public triggerEvent(forcedType?: WindowEventType): void {
-		if (this.activeActor) return;
+		if (this.activeActor) {
+			if (forcedType) {
+				this.stopCurrentEvent();
+			} else {
+				return;
+			}
+		}
 
 		let chosenActor: WindowEventActor;
 
@@ -157,17 +165,13 @@ export class EventDirector {
 	}
 
 	private isOpeningVisible(_op?: OpeningId): boolean {
-		const camDir = new THREE.Vector3();
-		this.camera.getWorldDirection(camDir);
-
-		return camDir.x > 0.45;
+		this.camera.getWorldDirection(_dirCamDir);
+		return _dirCamDir.x > 0.45;
 	}
 
 	private calculatePan(_op?: OpeningId): number {
-
-		const camDir = new THREE.Vector3();
-		this.camera.getWorldDirection(camDir);
-		const camAngle = Math.atan2(camDir.x, -camDir.z);
+		this.camera.getWorldDirection(_dirCamDir);
+		const camAngle = Math.atan2(_dirCamDir.x, -_dirCamDir.z);
 		const diff = Math.PI / 2 - camAngle;
 		return Math.max(-1, Math.min(1, Math.sin(diff)));
 	}

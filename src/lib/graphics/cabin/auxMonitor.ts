@@ -98,8 +98,9 @@ export class AuxMonitor {
 	public updateScreen(state: AuxiliaryScreenState | null, delta: number, elapsedTime: number): void {
 		const auxBlinkInterval = 0.45;
 		const auxBlinkNeedsUpdate = elapsedTime - this.lastAuxBlinkTime >= auxBlinkInterval;
+		const isBooting = this.auxCanvas.booting;
 
-		if (state && (this.isDirty || auxBlinkNeedsUpdate)) {
+		if (state && (this.isDirty || isBooting || auxBlinkNeedsUpdate)) {
 			this.auxCanvas.render(state, delta);
 			this.auxTexture.needsUpdate = true;
 			this.isDirty = false;

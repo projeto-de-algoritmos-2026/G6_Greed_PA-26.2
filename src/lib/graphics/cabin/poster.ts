@@ -12,7 +12,7 @@ export class DystopianPoster {
 		const pH = 1.256;
 
 		const darkRibMat = new THREE.MeshLambertMaterial({
-			color: 0x1e272e,
+			color: 0x547998,
 			map: createDarkRibTexture()
 		});
 
@@ -20,7 +20,7 @@ export class DystopianPoster {
 		this.group.add(backPlate);
 
 		const boltGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.025, 8);
-		const boltMat = new THREE.MeshLambertMaterial({ color: 0x4f6270 });
+		const boltMat = new THREE.MeshLambertMaterial({ color: 0x7ea3be });
 		for (const bx of [-pW / 2 - 0.02, pW / 2 + 0.02]) {
 			for (const by of [-pH / 2 - 0.02, 0, pH / 2 + 0.02]) {
 				const bolt = new THREE.Mesh(boltGeo, boltMat);
@@ -45,7 +45,7 @@ export class DystopianPoster {
 		this.group.add(posterSheet);
 
 		const clipGeo = new THREE.BoxGeometry(0.055, 0.022, 0.016);
-		const clipMat = new THREE.MeshLambertMaterial({ color: 0x3d4e59 });
+		const clipMat = new THREE.MeshLambertMaterial({ color: 0x658ca8 });
 		for (const cx of [-pW / 2 + 0.035, pW / 2 - 0.035]) {
 			for (const cy of [-pH / 2 + 0.025, pH / 2 - 0.025]) {
 				const clip = new THREE.Mesh(clipGeo, clipMat);

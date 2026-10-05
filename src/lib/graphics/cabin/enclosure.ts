@@ -12,18 +12,20 @@ export class CabinEnclosure {
 		const ribTex = createDarkRibTexture();
 
 		const steelWallMat = new THREE.MeshLambertMaterial({
-			color: 0x384855,
-			map: hullTex
+			color: 0x6e9ec0,
+			map: hullTex,
+			side: THREE.DoubleSide
 		});
 		const darkRibMat = new THREE.MeshLambertMaterial({
-			color: 0x24323d,
-			map: ribTex
+			color: 0x547998,
+			map: ribTex,
+			side: THREE.DoubleSide
 		});
 		const darkPipeMat = new THREE.MeshLambertMaterial({
-			color: 0x2d3a46,
+			color: 0x5a82a0,
 			map: ribTex
 		});
-		const redValveMat = new THREE.MeshLambertMaterial({ color: 0x9e1e1e });
+		const redValveMat = new THREE.MeshLambertMaterial({ color: 0xcc2929 });
 
 		const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 14, 8, 8), darkRibMat);
 		floor.rotation.x = -Math.PI / 2;
@@ -31,7 +33,7 @@ export class CabinEnclosure {
 		this.group.add(floor);
 
 		const vault = new THREE.Mesh(
-			new THREE.CylinderGeometry(5.2, 5.2, 9.6, 32, 1, true, Math.PI * 0.22, Math.PI * 0.56),
+			new THREE.CylinderGeometry(5.2, 5.2, 9.6, 32, 1, true, Math.PI * 0.68, Math.PI * 0.64),
 			steelWallMat
 		);
 		vault.rotation.x = Math.PI / 2;
@@ -40,10 +42,10 @@ export class CabinEnclosure {
 
 		for (const z of [-1.0, 1.0, 3.0, 5.0]) {
 			const ribArch = new THREE.Mesh(
-				new THREE.TorusGeometry(5.2, 0.08, 8, 24, Math.PI * 0.56),
+				new THREE.TorusGeometry(5.2, 0.08, 8, 24, Math.PI * 0.64),
 				darkRibMat
 			);
-			ribArch.rotation.z = Math.PI * 0.22;
+			ribArch.rotation.z = Math.PI * 0.68;
 			ribArch.position.set(0, -0.6, z);
 			this.group.add(ribArch);
 		}
@@ -62,18 +64,34 @@ export class CabinEnclosure {
 		crossBeam.position.set(0, 2.2, -2.34);
 		this.group.add(crossBeam);
 
+		// Industrial overhead ceiling lamp fixture at top of cabin
+		const lampGroup = new THREE.Group();
+		lampGroup.position.set(0, 2.30, 0.65);
+
+		const cordGeo = new THREE.CylinderGeometry(0.016, 0.016, 2.3, 8);
+		const cordMat = new THREE.MeshLambertMaterial({ color: 0x223240 });
+		const cord = new THREE.Mesh(cordGeo, cordMat);
+		cord.position.set(0, 1.15, 0);
+
+		const shadeGeo = new THREE.ConeGeometry(0.36, 0.18, 16, 1, true);
+		shadeGeo.rotateX(Math.PI);
+		const shadeMat = new THREE.MeshLambertMaterial({ color: 0x3d5d77, side: THREE.DoubleSide });
+		const shade = new THREE.Mesh(shadeGeo, shadeMat);
+		shade.position.set(0, 0.12, 0);
+
 		const lampCage = new THREE.Mesh(
-			new THREE.CylinderGeometry(0.18, 0.22, 0.35, 8, 1, true),
-			new THREE.MeshBasicMaterial({ color: 0x364654, wireframe: true })
+			new THREE.CylinderGeometry(0.20, 0.25, 0.36, 8, 1, true),
+			new THREE.MeshBasicMaterial({ color: 0x688fae, wireframe: true })
 		);
-		lampCage.position.set(0, 2.8, 1.5);
 
 		this.ceilingBulb = new THREE.Mesh(
-			new THREE.SphereGeometry(0.09, 12, 12),
-			new THREE.MeshBasicMaterial({ color: 0xfff0b8, fog: false })
+			new THREE.SphereGeometry(0.11, 16, 16),
+			new THREE.MeshBasicMaterial({ color: 0xeaf4ff, fog: false })
 		);
-		this.ceilingBulb.position.set(0, 2.74, 1.5);
-		this.group.add(lampCage, this.ceilingBulb);
+		this.ceilingBulb.position.set(0, -0.04, 0);
+
+		lampGroup.add(cord, shade, lampCage, this.ceilingBulb);
+		this.group.add(lampGroup);
 
 		const pipe1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 12, 16), darkPipeMat);
 		pipe1.rotation.z = Math.PI / 2;

@@ -14,11 +14,15 @@ export class SiphonophoreActor implements WindowEventActor {
 	private tentacles: THREE.Line[] = [];
 	private stemCurve: THREE.CatmullRomCurve3;
 	private stemPoints: THREE.Vector3[] = [];
-	private stemMesh: THREE.Mesh;
+	private stemGeometry: THREE.BufferGeometry;
+	private stemLine: THREE.Line;
+	private stemPositions: Float32Array;
+	private zooidMaterials: THREE.MeshStandardMaterial[] = [];
 
 	private elapsed: number = 0;
 	private duration: number = 15.0;
 	private totalZooids: number = 36;
+	private numStemSamples: number = 48;
 
 	constructor() {
 		this.root = new THREE.Group();
@@ -36,6 +40,11 @@ export class SiphonophoreActor implements WindowEventActor {
 			roughness: 0.1,
 			metalness: 0.1
 		});
+
+		// 6 shared materials for cyclic bioluminescent pulse instead of 36 distinct clones
+		for (let m = 0; m < 6; m++) {
+			this.zooidMaterials.push(jellyMat.clone());
+		}
 
 		for (const nz of [-0.22, 0.22]) {
 			const nectGroup = new THREE.Group();
@@ -56,18 +65,22 @@ export class SiphonophoreActor implements WindowEventActor {
 		}
 		this.stemCurve = new THREE.CatmullRomCurve3(this.stemPoints);
 
-		const tubeGeo = new THREE.TubeGeometry(this.stemCurve, 48, 0.035, 6, false);
-		this.stemMesh = new THREE.Mesh(
-			tubeGeo,
-			new THREE.MeshStandardMaterial({
-				color: 0x00ffcc,
-				emissive: 0x00aa88,
-				emissiveIntensity: 0.7,
-				transparent: true,
-				opacity: 0.85
-			})
+		this.stemPositions = new Float32Array(this.numStemSamples * 3);
+		this.stemGeometry = new THREE.BufferGeometry();
+		this.stemGeometry.setAttribute(
+			'position',
+			new THREE.BufferAttribute(this.stemPositions, 3)
 		);
-		this.siphonophoreRoot.add(this.stemMesh);
+
+		const stemMat = new THREE.LineBasicMaterial({
+			color: 0x00ffcc,
+			transparent: true,
+			opacity: 0.85,
+			blending: THREE.AdditiveBlending
+		});
+
+		this.stemLine = new THREE.Line(this.stemGeometry, stemMat);
+		this.siphonophoreRoot.add(this.stemLine);
 
 		const zooidGeo = new THREE.SphereGeometry(0.12, 10, 10);
 		zooidGeo.scale(1.0, 1.5, 0.8);
@@ -80,7 +93,7 @@ export class SiphonophoreActor implements WindowEventActor {
 		});
 
 		for (let i = 0; i < this.totalZooids; i++) {
-			const zMesh = new THREE.Mesh(zooidGeo, jellyMat.clone());
+			const zMesh = new THREE.Mesh(zooidGeo, this.zooidMaterials[i % 6]);
 			this.zooidMeshes.push(zMesh);
 			this.siphonophoreRoot.add(zMesh);
 
@@ -123,26 +136,34 @@ export class SiphonophoreActor implements WindowEventActor {
 		this.siphonophoreRoot.position.z = -2.5 + Math.sin(progress * Math.PI) * 0.30;
 		this.siphonophoreRoot.rotation.set(0, -0.03, -0.02);
 
+		// Update 6 shared materials instead of looping over 36 individual instances
+		for (let m = 0; m < 6; m++) {
+			const lumPhase = (this.elapsed * 4.0 - m * 0.5) % (Math.PI * 2);
+			const lumBrightness = 0.5 + Math.sin(lumPhase) * 0.8;
+			this.zooidMaterials[m].emissiveIntensity = Math.max(0.2, lumBrightness);
+		}
+
 		for (let i = 0; i < this.totalZooids; i++) {
 			const wave = Math.sin(this.elapsed * 2.2 - i * 0.28) * 0.30;
 			const waveZ = Math.cos(this.elapsed * 1.8 - i * 0.22) * 0.25;
+			const posX = -i * 0.35;
 
-			const pos = new THREE.Vector3(-i * 0.35, wave, waveZ);
-			this.stemPoints[i].copy(pos);
-
-			const zMesh = this.zooidMeshes[i];
-			zMesh.position.copy(pos);
-
-			const lumPhase = (this.elapsed * 4.0 - i * 0.4) % (Math.PI * 2);
-			const lumBrightness = 0.5 + Math.sin(lumPhase) * 0.8;
-			(zMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = Math.max(0.2, lumBrightness);
+			this.stemPoints[i].set(posX, wave, waveZ);
+			this.zooidMeshes[i].position.set(posX, wave, waveZ);
 
 			this.tentacles[i].rotation.z = Math.sin(this.elapsed * 1.5 + i * 0.2) * 0.25;
 			this.tentacles[i].rotation.x = Math.cos(this.elapsed * 1.2 + i * 0.2) * 0.2;
 		}
 
-		this.stemMesh.geometry.dispose();
-		this.stemMesh.geometry = new THREE.TubeGeometry(this.stemCurve, 48, 0.035, 6, false);
+		// Update stem line vertex positions in-place without disposing/reallocating geometries
+		const pts = this.stemCurve.getPoints(this.numStemSamples - 1);
+		const posArr = this.stemPositions;
+		for (let p = 0; p < pts.length; p++) {
+			posArr[p * 3] = pts[p].x;
+			posArr[p * 3 + 1] = pts[p].y;
+			posArr[p * 3 + 2] = pts[p].z;
+		}
+		this.stemGeometry.attributes.position.needsUpdate = true;
 
 		return true;
 	}

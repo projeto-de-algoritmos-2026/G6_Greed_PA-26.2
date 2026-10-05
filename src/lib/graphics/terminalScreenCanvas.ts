@@ -1,4 +1,5 @@
 import type { HuffmanMetrics, HuffmanNode } from '../engine/huffman';
+import { terminalLogo } from './terminalLogo';
 
 export interface TerminalScreenState {
 	depth: number;
@@ -43,6 +44,10 @@ export class TerminalScreenCanvas {
 	private scanlinePattern: CanvasPattern | null = null;
 	private hydrophonePhase: number = 0;
 
+	private isBooting: boolean = true;
+	private bootTime: number = 0;
+	public readonly bootDuration: number = 3.6;
+
 	constructor() {
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.width;
@@ -58,11 +63,30 @@ export class TerminalScreenCanvas {
 		this.scanlinePattern = this.ctx.createPattern(patCanvas, 'repeat');
 	}
 
+	public triggerBoot(): void {
+		this.isBooting = true;
+		this.bootTime = 0;
+	}
+
+	public skipBoot(): void {
+		this.isBooting = false;
+		this.bootTime = this.bootDuration;
+	}
+
+	public get booting(): boolean {
+		return this.isBooting;
+	}
+
 	public setActionCallback(cb: ScreenActionCallback): void {
 		this.onAction = cb;
 	}
 
 	public handleClickUV(u: number, v: number): boolean {
+		if (this.isBooting) {
+			this.skipBoot();
+			return true;
+		}
+
 		const canvasX = u * this.width;
 		const canvasY = (1 - v) * this.height;
 
@@ -84,6 +108,11 @@ export class TerminalScreenCanvas {
 		const ctx = this.ctx;
 		this.interactiveRects = [];
 		this.hydrophonePhase += delta * 4.5;
+
+		if (this.isBooting) {
+			this.renderBootScreen(ctx, state, delta);
+			return;
+		}
 
 		ctx.fillStyle = '#010d08';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -743,6 +772,32 @@ export class TerminalScreenCanvas {
 			() => this.onAction?.({ type: 'NEXT_LEVEL' }),
 			true
 		);
+	}
+
+	private renderBootScreen(
+		ctx: CanvasRenderingContext2D,
+		_state: TerminalScreenState,
+		delta: number
+	): void {
+		this.bootTime += delta;
+		if (this.bootTime >= this.bootDuration) {
+			this.isBooting = false;
+			return;
+		}
+
+		terminalLogo.drawXPBootScreen(ctx, {
+			width: this.width,
+			height: this.height,
+			bootTime: this.bootTime,
+			bootDuration: this.bootDuration,
+			theme: 'green',
+			titleMain: 'SUBWAVE',
+			titleXP: 'xp',
+			subtitle: 'Professional',
+			companyName: 'T A R T A R U S   S U B M E R S I B L E   S Y S T E M S',
+			copyrightText: 'Cephalo-Systems Corporation // All rights reserved.',
+			accentColor: '#00e5ff'
+		});
 	}
 }
 
