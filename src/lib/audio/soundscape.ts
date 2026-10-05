@@ -59,6 +59,10 @@ export class ProceduralAudioEngine {
 		this.uiSounds.playSonarPing(this.ctx, this.masterGain, this.isMuted, isOne);
 	}
 
+	public playSymbolBoundary(): void {
+		this.uiSounds.playSymbolBoundary(this.ctx, this.masterGain, this.isMuted);
+	}
+
 	public playRelayClick(): void {
 		this.uiSounds.playRelayClick(this.ctx, this.masterGain, this.isMuted);
 	}
