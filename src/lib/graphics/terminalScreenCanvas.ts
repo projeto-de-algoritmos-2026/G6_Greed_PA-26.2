@@ -1,14 +1,3 @@
-/**
- * SUBWAVE - Terminal Screen Canvas Renderer (Console A - Monitor Principal)
- * Minimalismo Monocromático Diegético em Fósforo Verde P1:
- * - Estética militar/industrial austera a 8.000m de profundidade.
- * - Sensor de Hidrofone Passivo & Monitor de Ruído Acústico (ondas sonoras em tempo real sem pontinho de videogame).
- * - Telemetria vetorial fina de compressão de Huffman e cota segura.
- * - Árvore de Huffman com linhas finas fosforescentes e realce por inversão de contraste.
- * - Comandos táteis de terminal militar retrô e bandeja limpa de nós.
- * - Telas especiais de Transmissão urgente, Ruptura de Casco e Alívio Tenso de Vitória.
- */
-
 import type { HuffmanMetrics, HuffmanNode } from '../engine/huffman';
 
 export interface TerminalScreenState {
@@ -16,7 +5,7 @@ export interface TerminalScreenState {
 	pressureAtm: number;
 	message: string;
 	metrics: HuffmanMetrics;
-	acousticProximity: number; // 0 a 100%
+	acousticProximity: number;
 	isTreeComplete: boolean;
 	isTransmitting: boolean;
 	isGameOver: boolean;
@@ -60,7 +49,6 @@ export class TerminalScreenCanvas {
 		this.canvas.height = this.height;
 		this.ctx = this.canvas.getContext('2d')!;
 
-		// Padrão de scanlines para o tubo CRT
 		const patCanvas = document.createElement('canvas');
 		patCanvas.width = 4;
 		patCanvas.height = 4;
@@ -97,17 +85,14 @@ export class TerminalScreenCanvas {
 		this.interactiveRects = [];
 		this.hydrophonePhase += delta * 4.5;
 
-		// 1. Fundo do tubo CRT de fósforo verde-escuro
 		ctx.fillStyle = '#010d08';
 		ctx.fillRect(0, 0, this.width, this.height);
 
-		// Scanlines
 		if (this.scanlinePattern) {
 			ctx.fillStyle = this.scanlinePattern;
 			ctx.fillRect(0, 0, this.width, this.height);
 		}
 
-		// Grade de fósforo milimétrica sutil
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.04)';
 		ctx.lineWidth = 1;
 		for (let x = 0; x < this.width; x += 32) {
@@ -123,7 +108,6 @@ export class TerminalScreenCanvas {
 			ctx.stroke();
 		}
 
-		// 2. Telas de Estado Especial
 		if (state.isGameOver) {
 			this.renderGameOverScreen(ctx, state);
 			return;
@@ -137,22 +121,17 @@ export class TerminalScreenCanvas {
 			return;
 		}
 
-		// 3. Layout Principal do Terminal
 		this.renderTopBanner(ctx, state);
 		this.renderTelemetryPanel(ctx, state);
 		this.renderHydrophoneScope(ctx, state);
 		this.renderHuffmanTreeArea(ctx, state);
 		this.renderBottomControls(ctx, state);
 
-		// Moldura interna do fósforo verde CRT
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.35)';
 		ctx.lineWidth = 2;
 		ctx.strokeRect(6, 6, this.width - 12, this.height - 12);
 	}
 
-	/**
-	 * Topo: Header com telemetria da estação e alerta SOS
-	 */
 	private renderTopBanner(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		const bx = 12;
 		const by = 12;
@@ -167,28 +146,23 @@ export class TerminalScreenCanvas {
 
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 15px "Courier New", monospace';
-		ctx.textAlign = 'left';
-		ctx.fillText(`TARTARUS-V // COTA: ${state.depth}m // CASCO: ${state.pressureAtm} ATM`, bx + 16, by + 24);
+		ctx.fillText(`TARTARUS-V // ${state.depth}m`, bx + 16, by + 24);
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
 		ctx.font = 'bold 14px "Courier New", monospace';
 		ctx.fillText(`MENSAGEM: "${state.message}"`, bx + 16, by + 42);
 
-		// Risco Acústico
 		const risk = Math.round(state.acousticProximity);
 		ctx.textAlign = 'right';
 		ctx.fillStyle = risk > 75 ? '#ff3b3b' : risk > 45 ? '#ffaa00' : '#00ffaa';
 		ctx.font = 'bold 15px "Courier New", monospace';
-		ctx.fillText(`RISCO ACÚSTICO: ${risk}%`, bx + bw - 16, by + 24);
+		ctx.fillText(`RISCO: ${risk}%`, bx + bw - 16, by + 24);
 
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.8)';
 		ctx.font = '12px "Courier New", monospace';
-		ctx.fillText(`COTA LIMITE: ${state.safeBitQuota} BITS`, bx + bw - 16, by + 42);
+		ctx.fillText(`COTA LIMITE: ${state.safeBitQuota}b`, bx + bw - 16, by + 42);
 	}
 
-	/**
-	 * Painel Esquerdo: Telemetria de Compressão de Huffman (Linhas vetoriais finas)
-	 */
 	private renderTelemetryPanel(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		const px = 12;
 		const py = 72;
@@ -204,9 +178,8 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 13px "Courier New", monospace';
 		ctx.textAlign = 'left';
-		ctx.fillText('TELEMETRIA DE COMPRESSÃO', px + 14, py + 24);
+		ctx.fillText('TELEMETRIA HUFFMAN', px + 14, py + 24);
 
-		// Linha divisória
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.15)';
 		ctx.beginPath();
 		ctx.moveTo(px + 14, py + 34);
@@ -215,8 +188,8 @@ export class TerminalScreenCanvas {
 
 		ctx.font = '12px "Courier New", monospace';
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.75)';
-		ctx.fillText(`ASCII BRUTO : ${state.metrics.rawAsciiBits} bits`, px + 14, py + 58);
-		ctx.fillText(`CUSTO ÓTIMO : ${state.metrics.optimalBits} bits`, px + 14, py + 84);
+		ctx.fillText(`ASCII BRUTO : ${state.metrics.rawAsciiBits}b`, px + 14, py + 58);
+		ctx.fillText(`CUSTO ÓTIMO : ${state.metrics.optimalBits}b`, px + 14, py + 84);
 
 		ctx.fillStyle = state.isTreeComplete
 			? state.metrics.playerBits <= state.safeBitQuota
@@ -224,12 +197,11 @@ export class TerminalScreenCanvas {
 				: '#ffaa00'
 			: 'rgba(0, 255, 170, 0.4)';
 		ctx.fillText(
-			`SUA ÁRVORE  : ${state.isTreeComplete ? `${state.metrics.playerBits} bits` : 'INCOMPLETA'}`,
+			`SUA ÁRVORE  : ${state.isTreeComplete ? `${state.metrics.playerBits}b` : 'PENDENTE'}`,
 			px + 14,
 			py + 110
 		);
 
-		// Barra de Eficiência
 		ctx.fillStyle = '#ffffff';
 		ctx.fillText(`EFICIÊNCIA  : ${state.isTreeComplete ? `${state.metrics.efficiency}%` : '--'}`, px + 14, py + 142);
 
@@ -247,16 +219,12 @@ export class TerminalScreenCanvas {
 		ctx.font = 'bold 11px "Courier New", monospace';
 		ctx.fillStyle = state.isTreeComplete ? '#00ffaa' : '#ffaa00';
 		ctx.fillText(
-			state.isTreeComplete ? '● TRANSMISSÃO DISPONÍVEL' : `● ${state.availableNodes.length} NÓS PENDENTES`,
+			state.isTreeComplete ? '● TRANSMISSÃO PRONTA' : `● ${state.availableNodes.length} NÓS PENDENTES`,
 			px + 14,
 			py + 192
 		);
 	}
 
-	/**
-	 * Painel Direito: Sensor de Hidrofone Passivo & Ruído Abissal
-	 * Substitui o radar com pontinho vermelho por um osciloscópio acústico realista de pressão sonora
-	 */
 	private renderHydrophoneScope(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		const rw = 246;
 		const rh = 216;
@@ -278,20 +246,17 @@ export class TerminalScreenCanvas {
 		const cy = ry + 104;
 		const radius = 62;
 
-		// Círculo exterior do hidrofone
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.25)';
 		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.arc(cx, cy, radius, 0, Math.PI * 2);
 		ctx.stroke();
 
-		// Círculo interior
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.12)';
 		ctx.beginPath();
 		ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
 		ctx.stroke();
 
-		// Mira em cruz
 		ctx.beginPath();
 		ctx.moveTo(cx - radius, cy);
 		ctx.lineTo(cx + radius, cy);
@@ -299,7 +264,6 @@ export class TerminalScreenCanvas {
 		ctx.lineTo(cx, cy + radius);
 		ctx.stroke();
 
-		// Forma de onda acústica em tempo real dentro do visor
 		ctx.save();
 		ctx.beginPath();
 		ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
@@ -316,7 +280,7 @@ export class TerminalScreenCanvas {
 
 		for (let i = 0; i <= wavePoints; i++) {
 			const px = cx - radius + i * step;
-			// Onda senoidal base com ruído orgânico proporcional à proximidade da criatura
+
 			const freq = 4.0 + tension * 12.0;
 			const amp = 6.0 + tension * 22.0;
 			const noise = (Math.random() - 0.5) * (tension * 16.0);
@@ -328,7 +292,6 @@ export class TerminalScreenCanvas {
 		ctx.stroke();
 		ctx.restore();
 
-		// Telemetria acústica abaixo do escopo
 		const dbLevel = (120 - state.acousticProximity * 0.85).toFixed(1);
 		ctx.font = '11px "Courier New", monospace';
 		ctx.fillStyle = tension > 0.75 ? '#ff3b3b' : tension > 0.45 ? '#ffaa00' : 'rgba(0, 255, 170, 0.9)';
@@ -339,9 +302,6 @@ export class TerminalScreenCanvas {
 		ctx.fillText(`STATUS: ${contactStatus}`, cx, ry + 202);
 	}
 
-	/**
-	 * Área Central: Árvore de Huffman interativa com estética fosforescente limpa
-	 */
 	private renderHuffmanTreeArea(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		const tx = 270;
 		const ty = 72;
@@ -357,12 +317,10 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.5)';
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.textAlign = 'left';
-		ctx.fillText('DIAGRAMA DE PREFIXOS BINÁRIOS (SELECIONE 2 NÓS P/ FUSÃO)', tx + 14, ty + 22);
+		ctx.fillText('DIAGRAMA BINÁRIO (SELECIONE 2 NÓS)', tx + 14, ty + 22);
 
-		// Layout dos nós
 		this.layoutNodes(state.allActiveNodes, tx + tw / 2, ty + th - 60, tw - 40, th - 80);
 
-		// 1. Linhas de ramificação em fósforo verde
 		for (const parent of state.allActiveNodes) {
 			if (!parent.isLeaf && parent.left && parent.right) {
 				const px = parent.x ?? 0;
@@ -372,7 +330,6 @@ export class TerminalScreenCanvas {
 				const rx = parent.right.x ?? 0;
 				const ry = parent.right.y ?? 0;
 
-				// Ramo Esquerdo ('0')
 				ctx.strokeStyle = 'rgba(0, 255, 170, 0.6)';
 				ctx.lineWidth = 1.5;
 				ctx.beginPath();
@@ -384,7 +341,6 @@ export class TerminalScreenCanvas {
 				ctx.font = 'bold 11px "Courier New", monospace';
 				ctx.fillText('0', (px + lx) / 2 - 8, (py + ly) / 2);
 
-				// Ramo Direito ('1')
 				ctx.beginPath();
 				ctx.moveTo(px, py);
 				ctx.lineTo(rx, ry);
@@ -394,7 +350,6 @@ export class TerminalScreenCanvas {
 			}
 		}
 
-		// 2. Nós vetoriais
 		for (const node of state.allActiveNodes) {
 			const nx = node.x ?? 0;
 			const ny = node.y ?? 0;
@@ -405,7 +360,7 @@ export class TerminalScreenCanvas {
 			const nh = 38;
 
 			if (isSelected) {
-				// Realce por inversão de fósforo brilhante
+
 				ctx.fillStyle = '#00ffaa';
 				ctx.fillRect(nx - nw / 2, ny - nh / 2, nw, nh);
 				ctx.strokeStyle = '#ffffff';
@@ -421,7 +376,7 @@ export class TerminalScreenCanvas {
 				ctx.font = 'bold 10px "Courier New", monospace';
 				ctx.fillText(`${node.weight}`, nx, ny + 12);
 			} else {
-				// Nó padrão
+
 				ctx.fillStyle = isAvailable ? '#012015' : '#01120c';
 				ctx.fillRect(nx - nw / 2, ny - nh / 2, nw, nh);
 				ctx.strokeStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.25)';
@@ -484,9 +439,6 @@ export class TerminalScreenCanvas {
 		}
 	}
 
-	/**
-	 * Painel Inferior: Botões Táteis e Bandeja de Nós Disponíveis
-	 */
 	private renderBottomControls(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		const by = 540;
 		const bh = 216;
@@ -497,14 +449,13 @@ export class TerminalScreenCanvas {
 		ctx.lineWidth = 1;
 		ctx.strokeRect(12, by, this.width - 24, bh);
 
-		// 1. Linha de Comandos Táteis
 		this.renderTactileButton(
 			ctx,
 			24,
 			by + 12,
 			170,
 			38,
-			'[ FUSÃO: ESPAÇO ]',
+			'[ FUNDIR: ESPAÇO ]',
 			state.selectedNodeIds.length === 2,
 			() => this.onAction?.({ type: 'MERGE' })
 		);
@@ -537,18 +488,17 @@ export class TerminalScreenCanvas {
 			by + 12,
 			this.width - 504 - 24,
 			38,
-			state.isTreeComplete ? '▶ DISPARAR TRANSMISSÃO SOS [ENTER]' : 'ÁRVORE INCOMPLETA P/ TRANSMISSÃO',
+			state.isTreeComplete ? '▶ TRANSMITIR SOS [ENTER]' : 'ÁRVORE PENDENTE',
 			state.isTreeComplete,
 			() => this.onAction?.({ type: 'TRANSMIT' }),
 			true
 		);
 
-		// 2. Bandeja de Nós
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.65)';
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.textAlign = 'left';
 		ctx.fillText(
-			`BANDEJA DE NÓS ATIVOS (${state.selectedNodeIds.length}/2 SELECIONADOS):`,
+			`NÓS DISPONÍVEIS (${state.selectedNodeIds.length}/2):`,
 			24,
 			by + 72
 		);
@@ -609,11 +559,10 @@ export class TerminalScreenCanvas {
 			});
 		});
 
-		// Dica de atalhos militar
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.45)';
 		ctx.font = '11px "Courier New", monospace';
 		ctx.textAlign = 'left';
-		ctx.fillText('COMANDOS: Espaço = Fundir | Z = Desfazer | R = Reiniciar | Enter = Transmitir | F = Foco | C = Console B | H = Manual', 24, by + 195);
+		ctx.fillText('ATALHOS: [Espaço] Fundir | [Z] Desfazer | [R] Reset | [Enter] Transmitir | [F/C] Foco | [H] Manual', 24, by + 195);
 	}
 
 	private renderTactileButton(
@@ -666,9 +615,6 @@ export class TerminalScreenCanvas {
 		}
 	}
 
-	/**
-	 * Tela durante a Transmissão de Bits (Urgência & Tensão Sonora)
-	 */
 	private renderTransmissionScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		ctx.fillStyle = 'rgba(30, 4, 4, 0.4)';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -676,17 +622,16 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#ff3b3b';
 		ctx.font = 'bold 24px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('TRANSMISSÃO SONAR ATIVA // SILÊNCIO COMPROMETIDO', this.width / 2, 120);
+		ctx.fillText('TRANSMISSÃO SONAR ATIVA', this.width / 2, 120);
 
 		ctx.font = '15px "Courier New", monospace';
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
 		ctx.fillText(
-			`DISPARANDO PULSOS ACÚSTICOS: ${state.currentBitIndex} DE ${state.fullBitStream.length} BITS`,
+			`PULSOS ACÚSTICOS: ${state.currentBitIndex} / ${state.fullBitStream.length}`,
 			this.width / 2,
 			160
 		);
 
-		// Fluxo binário
 		ctx.fillStyle = '#01120a';
 		ctx.fillRect(80, 200, this.width - 160, 260);
 		ctx.strokeStyle = '#00ffaa';
@@ -715,11 +660,10 @@ export class TerminalScreenCanvas {
 			}
 		}
 
-		// Barra de Risco Acústico
 		ctx.fillStyle = '#ffffff';
 		ctx.font = 'bold 14px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText(`PRESSÃO DE RUÍDO ACÚSTICO: ${Math.round(state.acousticProximity)}%`, this.width / 2, 520);
+		ctx.fillText(`RUÍDO ACÚSTICO: ${Math.round(state.acousticProximity)}%`, this.width / 2, 520);
 
 		ctx.fillStyle = '#010d08';
 		ctx.fillRect(160, 540, this.width - 320, 22);
@@ -731,9 +675,6 @@ export class TerminalScreenCanvas {
 		ctx.fillRect(161, 541, ((this.width - 322) * state.acousticProximity) / 100, 20);
 	}
 
-	/**
-	 * Tela de Game Over: Ruptura de Casco e Perda de Sinal
-	 */
 	private renderGameOverScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		ctx.fillStyle = 'rgba(40, 2, 2, 0.75)';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -741,15 +682,15 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#ff3b3b';
 		ctx.font = 'bold 30px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('COLAPSO DE CASCO // SINAL PERDIDO A 8.000m', this.width / 2, 210);
+		ctx.fillText('COLAPSO DE CASCO // SINAL PERDIDO', this.width / 2, 210);
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
 		ctx.font = '15px "Courier New", monospace';
-		ctx.fillText(`A PRESSÃO DE ${state.pressureAtm} ATM EXCEDEU A RESISTÊNCIA DO AÇO.`, this.width / 2, 260);
-		ctx.fillText('A ENTIDADE LOCALIZOU O SONAR E ROMPEU A ESCOTILHA.', this.width / 2, 290);
+		ctx.fillText('PRESSÃO CRÍTICA. CASCO ROMPIDO.', this.width / 2, 260);
+		ctx.fillText('A ENTIDADE DETECTOU O SONAR.', this.width / 2, 290);
 
 		ctx.fillStyle = 'rgba(255, 120, 120, 0.9)';
-		ctx.fillText(`Bits transmitidos: ${state.currentBitIndex} | Cota segura: ${state.safeBitQuota}`, this.width / 2, 340);
+		ctx.fillText(`Bits: ${state.currentBitIndex} | Limite seguro: ${state.safeBitQuota}`, this.width / 2, 340);
 
 		this.renderTactileButton(
 			ctx,
@@ -757,16 +698,13 @@ export class TerminalScreenCanvas {
 			420,
 			360,
 			50,
-			'[ REINICIAR CONSOLE ]',
+			'[ REINICIAR ]',
 			true,
 			() => this.onAction?.({ type: 'RETRY' }),
 			true
 		);
 	}
 
-	/**
-	 * Tela de Vitória: Alívio Tenso e Claustrofóbico (Sem confete alegre)
-	 */
 	private renderVictoryScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		ctx.fillStyle = 'rgba(0, 24, 16, 0.8)';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -774,12 +712,12 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 28px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('SINAL SOS DISPARADO COM SUCESSO', this.width / 2, 160);
+		ctx.fillText('SINAL TRANSMITIDO COM SUCESSO', this.width / 2, 160);
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
 		ctx.font = '15px "Courier New", monospace';
-		ctx.fillText('O SONAR FOI SILENCIADO A TEMPO.', this.width / 2, 210);
-		ctx.fillText('A CRIATURA PERDEU O RASTRO E MERGULHOU NO BREU DA FENDA.', this.width / 2, 236);
+		ctx.fillText('SONAR SILENCIADO A TEMPO.', this.width / 2, 210);
+		ctx.fillText('A CRIATURA PERDEU O RASTRO NA FENDA.', this.width / 2, 236);
 
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 18px "Courier New", monospace';
@@ -787,12 +725,12 @@ export class TerminalScreenCanvas {
 
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.8)';
 		ctx.font = '13px "Courier New", monospace';
-		ctx.fillText(`Bits Originais: ${state.metrics.rawAsciiBits}  ➔  Transmitidos: ${state.metrics.playerBits}`, this.width / 2, 314);
-		ctx.fillText(`Economia de Ruído Acústico: ${state.metrics.compressionRatio}%`, this.width / 2, 338);
+		ctx.fillText(`Bits: ${state.metrics.rawAsciiBits}  ➔  ${state.metrics.playerBits}`, this.width / 2, 314);
+		ctx.fillText(`Economia de Ruído: ${state.metrics.compressionRatio}%`, this.width / 2, 338);
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
 		ctx.font = '12px "Courier New", monospace';
-		ctx.fillText('AGUARDANDO EQUIPE DE RESGATE DA SUPERFÍCIE...', this.width / 2, 380);
+		ctx.fillText('AGUARDANDO EQUIPE DE RESGATE...', this.width / 2, 380);
 
 		this.renderTactileButton(
 			ctx,
@@ -800,10 +738,11 @@ export class TerminalScreenCanvas {
 			430,
 			360,
 			50,
-			'[ DESCER PARA O PRÓXIMO SETOR ]',
+			'[ PRÓXIMO SETOR ]',
 			true,
 			() => this.onAction?.({ type: 'NEXT_LEVEL' }),
 			true
 		);
 	}
 }
+
