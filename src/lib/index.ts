@@ -1,3 +1,4 @@
-export * from './engine/huffman';
-export * from './audio/soundscape';
+export * from './engine';
+export * from './audio';
 export * from './graphics/terminal3d';
+

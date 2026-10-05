@@ -1,3 +1,9 @@
+<div align="center">
+  <img src="./SONAR%20WAVE.png" alt="SONAR WAVE - Subwave" width="100%" style="max-width: 860px; border-radius: 6px;" />
+</div>
+
+<br/>
+
 # SUBWAVE // Terror Abissal e Algoritmo de Huffman
 
 > **Protótipo Jogável 3D & Terror Analógico a 8.000m de Profundidade**  
@@ -42,6 +48,8 @@ $$\text{Eficiência} = \left(\frac{\text{Bits Ótimos}}{\text{Bits do Jogador}}\
 * **Desfazer:** `[Tecla Z]` para reverter a última fusão (aplica penalidade de ruído no sonar).
 * **Reiniciar Árvore:** `[Tecla R]` para resetar todas as folhas.
 * **Disparar Transmissão:** `[Tecla Enter]` ao completar a árvore. Cada bit é emitido com um pulso de sonar em tempo real.
+* **Reiniciar Terminais (Boot):** `[Tecla B]` ou botão `[ ↻ REINICIAR (B) ]` no Console B para acionar a sequência de boot analógica do Nautilus-OS.
+* **Pular Boot:** Clique em qualquer um dos dois monitores ou pressione qualquer tecla durante a inicialização.
 * **Controle de Som:** `[Tecla M]` para ativar/desativar mudo.
 
 Durante a transmissão, a quantidade de ruído acumulado é comparada à cota segura
