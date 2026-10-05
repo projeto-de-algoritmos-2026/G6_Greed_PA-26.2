@@ -371,6 +371,9 @@ export class TerminalScreenCanvas {
 		);
 		const pos = (node: HuffmanNode) => positions.get(node.id)!;
 		const availableIds = new Set(state.availableNodes.map((n) => n.id));
+		const scale = Math.min(nw / 48, nh / 38);
+		const labelSize = Math.max(9, Math.round(14 * scale));
+		const weightSize = Math.max(8, Math.round(10 * scale));
 		// 1. Linhas de ramificação em fósforo verde
 		for (const parent of nodes) {
 			if (!parent.isLeaf && parent.left && parent.right) {
@@ -387,7 +390,7 @@ export class TerminalScreenCanvas {
 				ctx.stroke();
 
 				ctx.fillStyle = 'rgba(0, 255, 170, 0.9)';
-				ctx.font = 'bold 11px "Courier New", monospace';
+				ctx.font = `bold ${Math.max(8, Math.round(11 * scale))}px "Courier New", monospace`;
 				ctx.fillText('0', (px + lx) / 2 - 8, (py + ly) / 2);
 
 				// Ramo Direito ('1')
@@ -418,11 +421,11 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = '#010d08';
-				ctx.font = 'bold 14px "Courier New", monospace';
+				ctx.font = `bold ${labelSize}px "Courier New", monospace`;
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
 				ctx.fillText(label ?? '', nx, labelY);
 
-				ctx.font = 'bold 10px "Courier New", monospace';
+				ctx.font = `bold ${weightSize}px "Courier New", monospace`;
 				ctx.fillText(`${node.weight}`, nx, weightY);
 			} else {
 				// Nó padrão
@@ -434,11 +437,11 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = isAvailable ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
-				ctx.font = 'bold 13px "Courier New", monospace';
+				ctx.font = `bold ${Math.max(9, labelSize - 1)}px "Courier New", monospace`;
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
 				ctx.fillText(label ?? '', nx, labelY);
 
-				ctx.font = '10px "Courier New", monospace';
+				ctx.font = `${weightSize}px "Courier New", monospace`;
 				ctx.fillStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.4)';
 				ctx.fillText(`${node.weight}`, nx, weightY);
 			}
@@ -503,7 +506,7 @@ export class TerminalScreenCanvas {
 		if (totalLeaves === 0) return { nodes, positions, nodeW: 48, nodeH: 38 };
 
 		const slotW = Math.min(90, areaWidth / totalLeaves);
-		const nodeW = 48;
+		const nodeW = Math.max(16, Math.min(48, slotW - 4));
 
 		let nodeH = 38;
 		let levelGap = maxHeight > 0 ? (areaHeight - nodeH) / maxHeight : 0;
