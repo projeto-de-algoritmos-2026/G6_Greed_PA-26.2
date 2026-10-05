@@ -359,18 +359,24 @@ export class TerminalScreenCanvas {
 		ctx.textAlign = 'left';
 		ctx.fillText('DIAGRAMA DE PREFIXOS BINÁRIOS (SELECIONE 2 NÓS P/ FUSÃO)', tx + 14, ty + 22);
 
-		// Layout dos nós
-		this.layoutNodes(state.allActiveNodes, tx + tw / 2, ty + th - 60, tw - 40, th - 80);
-
+		// Layout dos nós (as raízes da floresta são os nós ainda disponíveis).
+		// As posições ficam num mapa local indexado por id: os nós chegam do Svelte
+		// como proxies de $state, e gravar x/y neles não se propaga entre cópias.
+		const { nodes, positions, nodeW: nw, nodeH: nh } = this.layoutNodes(
+			state.availableNodes,
+			tx + 20,
+			ty + 36,
+			tw - 40,
+			th - 48
+		);
+		const pos = (node: HuffmanNode) => positions.get(node.id)!;
+		const availableIds = new Set(state.availableNodes.map((n) => n.id));
 		// 1. Linhas de ramificação em fósforo verde
-		for (const parent of state.allActiveNodes) {
+		for (const parent of nodes) {
 			if (!parent.isLeaf && parent.left && parent.right) {
-				const px = parent.x ?? 0;
-				const py = parent.y ?? 0;
-				const lx = parent.left.x ?? 0;
-				const ly = parent.left.y ?? 0;
-				const rx = parent.right.x ?? 0;
-				const ry = parent.right.y ?? 0;
+				const { x: px, y: py } = pos(parent);
+				const { x: lx, y: ly } = pos(parent.left);
+				const { x: rx, y: ry } = pos(parent.right);
 
 				// Ramo Esquerdo ('0')
 				ctx.strokeStyle = 'rgba(0, 255, 170, 0.6)';
@@ -395,14 +401,12 @@ export class TerminalScreenCanvas {
 		}
 
 		// 2. Nós vetoriais
-		for (const node of state.allActiveNodes) {
-			const nx = node.x ?? 0;
-			const ny = node.y ?? 0;
+		for (const node of nodes) {
+			const { x: nx, y: ny } = pos(node);
 			const isSelected = state.selectedNodeIds.includes(node.id);
-			const isAvailable = state.availableNodes.some((n) => n.id === node.id);
-
-			const nw = 48;
-			const nh = 38;
+			const isAvailable = availableIds.has(node.id);
+			const labelY = ny - 3;
+			const weightY = ny + 12;
 
 			if (isSelected) {
 				// Realce por inversão de fósforo brilhante
@@ -416,10 +420,10 @@ export class TerminalScreenCanvas {
 				ctx.fillStyle = '#010d08';
 				ctx.font = 'bold 14px "Courier New", monospace';
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, ny - 3);
+				ctx.fillText(label ?? '', nx, labelY);
 
 				ctx.font = 'bold 10px "Courier New", monospace';
-				ctx.fillText(`${node.weight}`, nx, ny + 12);
+				ctx.fillText(`${node.weight}`, nx, weightY);
 			} else {
 				// Nó padrão
 				ctx.fillStyle = isAvailable ? '#012015' : '#01120c';
@@ -432,11 +436,11 @@ export class TerminalScreenCanvas {
 				ctx.fillStyle = isAvailable ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
 				ctx.font = 'bold 13px "Courier New", monospace';
 				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, ny - 3);
+				ctx.fillText(label ?? '', nx, labelY);
 
 				ctx.font = '10px "Courier New", monospace';
 				ctx.fillStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.4)';
-				ctx.fillText(`${node.weight}`, nx, ny + 12);
+				ctx.fillText(`${node.weight}`, nx, weightY);
 			}
 
 			if (isAvailable) {
@@ -453,35 +457,78 @@ export class TerminalScreenCanvas {
 		}
 	}
 
+	/**
+	 * Posiciona a floresta de subárvores de baixo para cima: cada folha recebe uma
+	 * fatia horizontal própria (subárvores ocupam fatias contíguas proporcionais ao
+	 * número de folhas) e cada nó interno fica acima do filho mais alto. Os tamanhos
+	 * dos nós encolhem para que a floresta inteira caiba na área, sem sobreposição.
+	 */
 	private layoutNodes(
-		allNodes: HuffmanNode[],
-		centerX: number,
-		bottomY: number,
+		roots: HuffmanNode[],
+		left: number,
+		top: number,
 		areaWidth: number,
 		areaHeight: number
-	): void {
-		const leaves = allNodes.filter((n) => n.isLeaf);
-		const totalLeaves = leaves.length;
-		const stepX = totalLeaves > 1 ? areaWidth / (totalLeaves - 1) : 0;
-		const startX = centerX - areaWidth / 2;
+	): {
+		nodes: HuffmanNode[];
+		positions: Map<string, { x: number; y: number }>;
+		nodeW: number;
+		nodeH: number;
+	} {
+		const nodes: HuffmanNode[] = [];
+		const positions = new Map<string, { x: number; y: number }>();
+		const heights = new Map<string, number>();
+		const leafCounts = new Map<string, number>();
 
-		leaves.forEach((leaf, idx) => {
-			leaf.x = totalLeaves === 1 ? centerX : startX + idx * stepX;
-			leaf.y = bottomY;
-		});
-
-		const internalNodes = allNodes.filter((n) => !n.isLeaf);
-		for (const node of internalNodes) {
-			if (node.left && node.right) {
-				const lx = node.left.x ?? centerX;
-				const rx = node.right.x ?? centerX;
-				const ly = node.left.y ?? bottomY;
-				const ry = node.right.y ?? bottomY;
-
-				node.x = (lx + rx) / 2;
-				node.y = Math.max(90, Math.min(ly, ry) - 65);
+		const measure = (node: HuffmanNode): void => {
+			nodes.push(node);
+			if (!node.isLeaf && node.left && node.right) {
+				measure(node.left);
+				measure(node.right);
+				heights.set(node.id, 1 + Math.max(heights.get(node.left.id)!, heights.get(node.right.id)!));
+				leafCounts.set(node.id, leafCounts.get(node.left.id)! + leafCounts.get(node.right.id)!);
+			} else {
+				heights.set(node.id, 0);
+				leafCounts.set(node.id, 1);
 			}
+		};
+
+		let totalLeaves = 0;
+		let maxHeight = 0;
+		for (const root of roots) {
+			measure(root);
+			maxHeight = Math.max(maxHeight, heights.get(root.id)!);
+			totalLeaves += leafCounts.get(root.id)!;
 		}
+		if (totalLeaves === 0) return { nodes, positions, nodeW: 48, nodeH: 38 };
+
+		const slotW = Math.min(90, areaWidth / totalLeaves);
+		const nodeW = 48;
+
+		const nodeH = 38;
+		const levelGap = 65;
+
+		const bottomY = top + areaHeight - nodeH / 2;
+		const place = (node: HuffmanNode, startX: number): number => {
+			let x: number;
+			if (!node.isLeaf && node.left && node.right) {
+				const lx = place(node.left, startX);
+				const rx = place(node.right, startX + leafCounts.get(node.left.id)! * slotW);
+				x = (lx + rx) / 2;
+			} else {
+				x = startX + slotW / 2;
+			}
+			positions.set(node.id, { x, y: bottomY - heights.get(node.id)! * levelGap });
+			return x;
+		};
+
+		let cursor = left + (areaWidth - totalLeaves * slotW) / 2;
+		for (const root of roots) {
+			place(root, cursor);
+			cursor += leafCounts.get(root.id)! * slotW;
+		}
+
+		return { nodes, positions, nodeW, nodeH };
 	}
 
 	/**
