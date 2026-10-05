@@ -496,7 +496,7 @@ export class LightFailureActor implements WindowEventActor {
 		ctx.shake(0.90);
 		ctx.glitch(0.55, 0.5);
 		ctx.audio?.playLightFailureSpark(ctx.pan(this.opening));
-		ctx.glass(this.opening).addScratch(0.0, -0.05, 0.8);
+		ctx.glass(this.opening).addScratch(0.0, -0.05, 0.8, 'LIGHT_FAILURE');
 	}
 
 	public stop(): void {

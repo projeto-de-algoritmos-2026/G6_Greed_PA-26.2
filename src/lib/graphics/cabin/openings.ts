@@ -1,6 +1,12 @@
 import * as THREE from 'three';
-import type { OpeningId, OpeningFrame, GlassDamageApi, ExteriorLightsApi, ScenePhase } from '../types';
-import { createImpactTexture, createScratchTexture, createDarkRibTexture } from '../textures/procedural';
+import type { OpeningId, OpeningFrame, GlassDamageApi, ExteriorLightsApi, ScenePhase, ScratchCreatureType, WindowEventType } from '../types';
+import { createImpactTexture, getCreatureScratchTexture, createDarkRibTexture } from '../textures/procedural';
+
+interface CreatureDecalEntry {
+	mesh: THREE.Mesh;
+	mat: THREE.MeshBasicMaterial;
+	opacity: number;
+}
 
 export class OpeningsManager {
 	public readonly group: THREE.Group;
@@ -19,6 +25,7 @@ export class OpeningsManager {
 	private scratchDecalMat: THREE.MeshBasicMaterial;
 	private impactOpacity: number = 0.0;
 	private scratchOpacity: number = 0.0;
+	private scratchDecals: Map<string, CreatureDecalEntry> = new Map();
 
 	private hatchLightLevel: number = 1.0;
 	private hatchFlickerTimer: number = 0;
@@ -95,16 +102,47 @@ export class OpeningsManager {
 		this.impactDecal.renderOrder = 11;
 		hatchPivot.add(this.impactDecal);
 
-		this.scratchDecalMat = new THREE.MeshBasicMaterial({
-			map: createScratchTexture(),
-			transparent: true,
-			opacity: 0.0,
-			depthWrite: false
-		});
-		this.scratchDecal = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.9), this.scratchDecalMat);
-		this.scratchDecal.position.set(0.35, -0.1, 0.01);
-		this.scratchDecal.renderOrder = 11;
-		hatchPivot.add(this.scratchDecal);
+		const creatureScratchConfigs: Array<{
+			type: string;
+			width: number;
+			height: number;
+			defaultX: number;
+			defaultY: number;
+		}> = [
+			{ type: 'CLAW_SCRAPE', width: 2.2, height: 2.4, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'MAW_PRESS', width: 2.5, height: 2.2, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'TENTACLE_INSPECTION', width: 2.4, height: 2.0, defaultX: 0.1, defaultY: 0.0 },
+			{ type: 'LIGHT_FAILURE', width: 2.2, height: 2.2, defaultX: 0.0, defaultY: -0.05 },
+			{ type: 'GIANT_ISOPODS', width: 2.6, height: 1.4, defaultX: -0.15, defaultY: -0.75 },
+			{ type: 'DEAD_DIVER', width: 1.8, height: 1.8, defaultX: 0.15, defaultY: -0.25 },
+			{ type: 'QUARTZ_IMPACT', width: 2.0, height: 2.0, defaultX: 0.05, defaultY: 0.12 },
+			{ type: 'LURKING_PREDATOR', width: 2.5, height: 1.8, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'COLOSSAL_EYE', width: 2.4, height: 2.2, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'MASSIVE_ECLIPSE', width: 2.6, height: 2.2, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'LANTERN_SWARM', width: 2.4, height: 2.0, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'SIPHONOPHORE', width: 2.4, height: 2.2, defaultX: 0.0, defaultY: 0.0 },
+			{ type: 'LEVIATHAN_SHADOWS', width: 2.6, height: 2.2, defaultX: 0.0, defaultY: 0.0 }
+		];
+
+		for (const cfg of creatureScratchConfigs) {
+			const mat = new THREE.MeshBasicMaterial({
+				map: getCreatureScratchTexture(cfg.type),
+				transparent: true,
+				opacity: 0.0,
+				depthWrite: false
+			});
+			const mesh = new THREE.Mesh(new THREE.PlaneGeometry(cfg.width, cfg.height), mat);
+			mesh.position.set(cfg.defaultX, cfg.defaultY, 0.01);
+			mesh.renderOrder = 11;
+			mesh.visible = false;
+			hatchPivot.add(mesh);
+
+			this.scratchDecals.set(cfg.type, { mesh, mat, opacity: 0 });
+		}
+
+		const defaultDecal = this.scratchDecals.get('CLAW_SCRAPE')!;
+		this.scratchDecal = defaultDecal.mesh;
+		this.scratchDecalMat = defaultDecal.mat;
 
 		const lampCaseGeo = new THREE.BoxGeometry(0.36, 0.26, 0.36);
 		const lampLensGeo = new THREE.PlaneGeometry(0.30, 0.22);
@@ -232,21 +270,52 @@ export class OpeningsManager {
 		return this.hatchFrame;
 	}
 
-	public getGlassDamageApi(_id?: OpeningId): GlassDamageApi {
+	private normalizeScratchType(type: string): string {
+		const upper = type.toUpperCase().replace(/-/g, '_');
+		if (this.scratchDecals.has(upper)) return upper;
+		if (upper === 'CLAW') return 'CLAW_SCRAPE';
+		if (upper === 'MAW') return 'MAW_PRESS';
+		if (upper === 'TENTACLE') return 'TENTACLE_INSPECTION';
+		if (upper === 'GHOUL' || upper === 'LIGHT') return 'LIGHT_FAILURE';
+		if (upper === 'ISOPOD' || upper === 'ISOPODS') return 'GIANT_ISOPODS';
+		if (upper === 'DIVER') return 'DEAD_DIVER';
+		if (upper === 'QUARTZ') return 'QUARTZ_IMPACT';
+		if (upper === 'PREDATOR') return 'LURKING_PREDATOR';
+		if (upper === 'EYE') return 'COLOSSAL_EYE';
+		if (upper === 'ECLIPSE') return 'MASSIVE_ECLIPSE';
+		if (upper === 'LANTERN' || upper === 'SWARM') return 'LANTERN_SWARM';
+		if (upper === 'SIPHONOPHORE') return 'SIPHONOPHORE';
+		if (upper === 'SHADOWS') return 'LEVIATHAN_SHADOWS';
+		return 'CLAW_SCRAPE';
+	}
+
+	public triggerScratch(type: string, x: number, y: number, severity: number): void {
+		const key = this.normalizeScratchType(type);
+		const decal = this.scratchDecals.get(key) || this.scratchDecals.get('CLAW_SCRAPE')!;
+		decal.mesh.position.set(x, y, 0.01);
+		decal.opacity = Math.min(1.0, decal.opacity + severity * 0.95);
+		decal.mat.opacity = decal.opacity;
+		decal.mesh.visible = true;
+
+		this.scratchOpacity = decal.opacity;
+		this.scratchDecal = decal.mesh;
+		this.scratchDecalMat = decal.mat;
+	}
+
+	public getGlassDamageApi(_id?: OpeningId, defaultCreatureType?: WindowEventType | string): GlassDamageApi {
 		return {
 			addCrack: (x: number, y: number, severity: number) => {
 				this.impactDecal.position.set(x, y, 0.01);
 				this.impactOpacity = Math.min(1.0, this.impactOpacity + severity * 0.95);
 				this.impactDecalMat.opacity = this.impactOpacity;
 			},
-			addScratch: (x: number, y: number, severity: number) => {
-				this.scratchDecal.position.set(x, y, 0.01);
-				this.scratchOpacity = Math.min(1.0, this.scratchOpacity + severity * 0.95);
-				this.scratchDecalMat.opacity = this.scratchOpacity;
+			addScratch: (x: number, y: number, severity: number, creatureType?: ScratchCreatureType | string) => {
+				const targetType = creatureType || defaultCreatureType || 'CLAW_SCRAPE';
+				this.triggerScratch(targetType, x, y, severity);
 			},
-			addScratchStroke: (_points, _width) => {
-				this.scratchOpacity = Math.min(1.0, this.scratchOpacity + 0.95);
-				this.scratchDecalMat.opacity = this.scratchOpacity;
+			addScratchStroke: (_points, _width, creatureType?: ScratchCreatureType | string) => {
+				const targetType = creatureType || defaultCreatureType || 'CLAW_SCRAPE';
+				this.triggerScratch(targetType, 0, 0, 1.0);
 			},
 			addSmear: () => {}
 		};
@@ -282,10 +351,16 @@ export class OpeningsManager {
 			this.impactOpacity = Math.max(0, this.impactOpacity - delta * 0.075);
 			this.impactDecalMat.opacity = this.impactOpacity;
 		}
-		if (this.scratchOpacity > 0.001) {
-			this.scratchOpacity = Math.max(0, this.scratchOpacity - delta * 0.065);
-			this.scratchDecalMat.opacity = this.scratchOpacity;
+		for (const decal of this.scratchDecals.values()) {
+			if (decal.opacity > 0.001) {
+				decal.opacity = Math.max(0, decal.opacity - delta * 0.065);
+				decal.mat.opacity = decal.opacity;
+				decal.mesh.visible = decal.opacity > 0.001;
+			} else if (decal.mesh.visible) {
+				decal.mesh.visible = false;
+			}
 		}
+		this.scratchOpacity = this.scratchDecalMat.opacity;
 
 		if (this.hatchFlickerTimer > 0) {
 			this.hatchFlickerTimer -= delta;

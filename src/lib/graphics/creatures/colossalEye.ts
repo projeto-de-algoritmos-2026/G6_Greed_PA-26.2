@@ -574,9 +574,10 @@ export class ColossalEyeActor implements WindowEventActor {
 			const sinA = Math.sin(angle);
 
 			const aGroup = new THREE.Group();
-			aGroup.position.set(cosA * armRadius, sinA * armRadius, -0.2);
-			aGroup.rotation.z = angle - Math.PI / 2;
-			aGroup.rotation.x = -0.38;
+			aGroup.position.set(cosA * armRadius, sinA * armRadius, -0.25);
+			// Direct the arm radially outward and tilted backward away from the glass (into negative Z)
+			const armDir = new THREE.Vector3(cosA, sinA, -0.42).normalize();
+			aGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), armDir);
 
 			const segments: THREE.Mesh[] = [];
 			let parentJoint: THREE.Object3D = aGroup;
@@ -615,9 +616,10 @@ export class ColossalEyeActor implements WindowEventActor {
 		const tentacleAngles = [-Math.PI * 0.35, -Math.PI * 0.65];
 		tentacleAngles.forEach((tAng, tIdx) => {
 			const tGroup = new THREE.Group();
-			tGroup.position.set(Math.cos(tAng) * (armRadius + 0.25), Math.sin(tAng) * (armRadius + 0.25), -0.3);
-			tGroup.rotation.z = tAng - Math.PI / 2;
-			tGroup.rotation.x = -0.28;
+			tGroup.position.set(Math.cos(tAng) * (armRadius + 0.25), Math.sin(tAng) * (armRadius + 0.25), -0.35);
+			// Direct feeding tentacles downward, outward, and backward into the abyss
+			const tDir = new THREE.Vector3(Math.cos(tAng), Math.sin(tAng), -0.45).normalize();
+			tGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), tDir);
 
 			const segments: THREE.Mesh[] = [];
 			let parentJoint: THREE.Object3D = tGroup;
@@ -761,8 +763,8 @@ export class ColossalEyeActor implements WindowEventActor {
 			for (let s = 0; s < arm.segments.length; s++) {
 				const seg = arm.segments[s];
 				const aPhase = this.elapsed * 1.5 + arm.phaseOffset + s * 0.45;
-				const curlZ = Math.sin(aPhase) * (0.06 + s * 0.035);
-				const curlX = Math.cos(aPhase * 0.8) * (0.05 + s * 0.03);
+				const curlZ = Math.sin(aPhase) * (0.04 + s * 0.02);
+				const curlX = Math.cos(aPhase * 0.8) * 0.03;
 				seg.rotation.z = curlZ;
 				seg.rotation.x = curlX;
 			}
@@ -774,8 +776,8 @@ export class ColossalEyeActor implements WindowEventActor {
 			for (let s = 0; s < tent.segments.length; s++) {
 				const seg = tent.segments[s];
 				const tPhase = this.elapsed * 1.2 + tent.phaseOffset + s * 0.38;
-				seg.rotation.z = Math.sin(tPhase) * (0.05 + s * 0.025);
-				seg.rotation.x = Math.cos(tPhase * 0.7) * 0.04;
+				seg.rotation.z = Math.sin(tPhase) * (0.04 + s * 0.015);
+				seg.rotation.x = Math.cos(tPhase * 0.7) * 0.03;
 			}
 			tent.club.rotation.z = Math.sin(this.elapsed * 1.6 + f) * 0.2;
 		}

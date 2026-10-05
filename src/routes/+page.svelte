@@ -56,6 +56,31 @@
 			terminal3D = new Terminal3DManager(terminalContainer, canvasElement);
 			terminal3D.setAudioEngine(audio);
 
+			if (typeof window !== 'undefined') {
+				(window as any).__terminal3D = terminal3D;
+				(window as any).__focusManual = () => {
+					terminal3D?.snapCabinetOpen();
+					focusManual();
+					terminal3D?.snapCamera();
+				};
+				(window as any).__focusPoster = () => {
+					focusPoster();
+					terminal3D?.snapCamera();
+				};
+				(window as any).__focusMonitor = () => {
+					focusMonitor();
+					terminal3D?.snapCamera();
+				};
+				(window as any).__focusAux = () => {
+					focusAuxiliaryMonitor();
+					terminal3D?.snapCamera();
+				};
+				(window as any).__resetCabin = () => {
+					resetCabinView();
+					terminal3D?.snapCamera();
+				};
+			}
+
 			terminal3D.onScreenAction((action) => {
 				activateAudio();
 				if (action.type === 'SELECT_NODE' && action.nodeId) {
@@ -72,6 +97,8 @@
 					loadCurrentLevel();
 				} else if (action.type === 'NEXT_LEVEL') {
 					nextLevel();
+				} else if (action.type === 'EXPORT_REPORT') {
+					exportAcademicReport();
 				}
 			});
 
@@ -98,6 +125,14 @@
 					toggleMute();
 				} else if (action.type === 'REBOOT') {
 					terminal3D?.triggerReboot();
+				} else if (action.type === 'SWITCH_TAB') {
+					terminal3D?.switchAuxTab(action.tab);
+				} else if (action.type === 'APPLY_GREEDY_MERGE') {
+					executeGreedyMerge();
+				} else if (action.type === 'EXPORT_REPORT') {
+					exportAcademicReport();
+				} else if (action.type === 'COPY_JSON') {
+					copyReportJson();
 				}
 			});
 
@@ -194,6 +229,10 @@
 	}
 
 	function syncScreenTexture(): void {
+		const academicReport = huffman.generateAcademicReport();
+		const greedyAdvice = huffman.getGreedyAdvice();
+		const priorityQueue = huffman.getPriorityQueueSnapshot();
+
 		terminal3D?.updateScreenState({
 			depth: currentLevel?.depth ?? 8000,
 			pressureAtm: currentLevel?.pressureAtm ?? 800,
@@ -210,7 +249,9 @@
 			transmittedBits,
 			fullBitStream,
 			currentBitIndex,
-			safeBitQuota
+			safeBitQuota,
+			academicReport,
+			greedyAdvice
 		});
 
 		terminal3D?.updateAuxScreenState({
@@ -228,7 +269,10 @@
 				depth: l.depth,
 				pressureAtm: l.pressureAtm,
 				toleranceMargin: l.toleranceMargin
-			}))
+			})),
+			priorityQueue,
+			greedyAdvice,
+			academicReport
 		});
 	}
 
@@ -295,6 +339,25 @@
 		}
 	}
 
+	function executeGreedyMerge(): void {
+		if (isTransmitting || isGameOver || isVictory || huffman.isTreeComplete()) return;
+		const advice = huffman.getGreedyAdvice();
+		if (!advice) return;
+
+		activateAudio();
+		try {
+			huffman.mergeNodes(advice.idA, advice.idB);
+			selectedNodeIds = [];
+			audio.playMergeSound(true);
+			terminal3D?.triggerCameraShake(0.04);
+			terminal3D?.notifyPlayerAction('GOOD_MERGE');
+			terminal3D?.showAuxToast(`FUSÃO AMBICIOSA: ${advice.labelA} + ${advice.labelB}`);
+			refreshState();
+		} catch (err) {
+			console.error('Erro na fusão ambiciosa assistida:', err);
+		}
+	}
+
 	function executeUndo(): void {
 		activateAudio();
 		const undone = huffman.undoLastMerge();
@@ -318,6 +381,39 @@
 		increaseProximity(3.0);
 		terminal3D?.notifyPlayerAction('RESET');
 		refreshState();
+	}
+
+	async function copyToClipboard(text: string, successMsg: string): Promise<void> {
+		try {
+			if (navigator?.clipboard?.writeText) {
+				await navigator.clipboard.writeText(text);
+			} else {
+				const textarea = document.createElement('textarea');
+				textarea.value = text;
+				textarea.style.position = 'fixed';
+				textarea.style.opacity = '0';
+				document.body.appendChild(textarea);
+				textarea.select();
+				document.execCommand('copy');
+				document.body.removeChild(textarea);
+			}
+			terminal3D?.showAuxToast(successMsg);
+		} catch (err) {
+			console.error('Falha ao copiar:', err);
+			terminal3D?.showAuxToast('ERRO AO COPIAR');
+		}
+	}
+
+	function exportAcademicReport(): void {
+		const rep = huffman.generateAcademicReport();
+		copyToClipboard(rep.markdown, 'RELATÓRIO ACADÊMICO COPIADO!');
+		audio.playRelayClick();
+	}
+
+	function copyReportJson(): void {
+		const rep = huffman.generateAcademicReport();
+		copyToClipboard(rep.json, 'DADOS JSON COPIADOS!');
+		audio.playRelayClick();
 	}
 
 	function increaseProximity(amount: number): void {
@@ -486,9 +582,20 @@
 		} else if (e.key === 'r' || e.key === 'R') {
 			executeResetTree();
 		} else if (e.code === 'Enter') {
-			if (isTreeComplete && !isGameOver && !isVictory) {
+			if (isVictory) {
+				e.preventDefault();
+				nextLevel();
+			} else if (isTreeComplete && !isGameOver) {
 				startTransmission();
 			}
+		} else if (e.key === 't' || e.key === 'T') {
+			if (focusedScreen !== 'aux') {
+				focusAuxiliaryMonitor();
+			}
+			terminal3D?.switchAuxTab('minheap');
+			audio.playRelayClick();
+		} else if (e.key === 'e' || e.key === 'E') {
+			exportAcademicReport();
 		} else if (e.key === 'm' || e.key === 'M') {
 			toggleMute();
 		} else if (e.key === 'f' || e.key === 'F') {

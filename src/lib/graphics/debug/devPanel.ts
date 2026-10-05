@@ -21,7 +21,7 @@ export class DevPanel {
 
 	private createUI(cb: DevPanelCallbacks): void {
 		const root = document.createElement('div');
-		root.id = 'subwave-dev-panel';
+		root.id = 'sonarwave-dev-panel';
 		root.style.position = 'fixed';
 		root.style.top = '12px';
 		root.style.right = '12px';

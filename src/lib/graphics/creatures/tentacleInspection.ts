@@ -223,7 +223,7 @@ export class TentacleInspectionActor implements WindowEventActor {
 
 			if (!this.scratchAdded && progress > 0.45) {
 				this.scratchAdded = true;
-				ctx.glass(this.opening).addScratch(0.1, 0.0, 0.75);
+				ctx.glass(this.opening).addScratch(0.1, 0.0, 0.75, 'TENTACLE_INSPECTION');
 			}
 
 			if (Math.random() < 0.16) {

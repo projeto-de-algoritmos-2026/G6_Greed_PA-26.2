@@ -183,7 +183,7 @@ export class EventDirector {
 			phase: this.currentPhase,
 			proximity: this.currentProximity,
 			frame: (op: OpeningId) => this.openings.getFrame(op),
-			glass: (op: OpeningId): GlassDamageApi => this.openings.getGlassDamageApi(op),
+			glass: (op: OpeningId): GlassDamageApi => this.openings.getGlassDamageApi(op, this.activeActor?.type),
 			lights: this.openings.getExteriorLightsApi(),
 			pan: (op: OpeningId) => this.calculatePan(op),
 			isVisible: (op: OpeningId) => this.isOpeningVisible(op),
