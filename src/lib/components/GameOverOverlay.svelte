@@ -8,6 +8,7 @@
 		safeBitQuota: number;
 		efficiency: number;
 		levelName?: string;
+		cause?: string | null;
 		onRestart: () => void;
 	}
 
@@ -18,6 +19,7 @@
 		safeBitQuota,
 		efficiency,
 		levelName = 'SETOR ABISSAL',
+		cause = null,
 		onRestart
 	}: Props = $props();
 
@@ -32,7 +34,7 @@
 		`>> ALERTA CATASTRÓFICO: COLAPSO ESTRUTURAL DO CASCO <<`,
 		`SETOR: ${levelName.toUpperCase()} // PROFUNDIDADE: ${depth.toLocaleString('pt-BR')} METROS`,
 		`PRESSÃO EXTERNA: ${pressureAtm} ATM // RUPTURA DE MAMPARAS`,
-		`CAUSA: ATRAÇÃO DA ENTIDADE POR SOBRECARGA ACÚSTICA DE SONAR`,
+		`CAUSA: ${cause ?? 'ATRAÇÃO DA ENTIDADE POR SOBRECARGA ACÚSTICA DE SONAR'}`,
 		`BITS TRANSMITIDOS: ${transmittedBits.length} / COTA SEGURA: ${safeBitQuota} BITS`,
 		`EFICIÊNCIA DE HUFFMAN: ${efficiency}% ${efficiency < 100 ? '(SUB-ÓTIMA)' : '(ÓTIMA)'}`,
 		`STATUS DO OPERADOR: SINAL BIOMÉTRICO INTERROMPIDO`,

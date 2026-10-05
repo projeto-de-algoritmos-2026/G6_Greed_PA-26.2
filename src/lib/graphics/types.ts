@@ -31,7 +31,10 @@ export type PlayerActionType =
 	| 'TRANSMIT_BIT'
 	| 'VICTORY'
 	| 'GAME_OVER'
-	| 'LEVEL_LOAD';
+	| 'LEVEL_LOAD'
+	| 'SILENCE_BROKEN'
+	| 'TRANSMIT_INTERRUPTED'
+	| 'MIMIC_TRUSTED';
 
 export interface OpeningFrame {
 	id: OpeningId;

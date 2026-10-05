@@ -22,7 +22,9 @@ export class UISoundSynthesizer {
 		delay.delayTime.setValueAtTime(0.18, now);
 		delayFeedback.gain.setValueAtTime(0.35, now);
 
-		osc.type = 'sine';
+		// Bits 1 soam mais brilhantes (triangular) e bits 0 mais surdos (senoidal),
+		// para que o fluxo comprimido possa ser acompanhado de ouvido.
+		osc.type = isOne ? 'triangle' : 'sine';
 		osc.frequency.setValueAtTime(baseFreq, now);
 		osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.65, now + 0.35);
 
@@ -46,6 +48,30 @@ export class UISoundSynthesizer {
 
 		osc.start(now);
 		osc.stop(now + 0.6);
+	}
+
+	public playSymbolBoundary(ctx: AudioContext | null, masterGain: GainNode | null, isMuted: boolean): void {
+		if (!ctx || !masterGain || isMuted) return;
+
+		const now = ctx.currentTime;
+		const osc = ctx.createOscillator();
+		const gain = ctx.createGain();
+
+		osc.type = 'sine';
+		osc.frequency.setValueAtTime(660, now);
+		osc.frequency.setValueAtTime(990, now + 0.05);
+
+		gain.gain.setValueAtTime(0.0001, now);
+		gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+		gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+		osc.connect(gain);
+		gain.connect(masterGain);
+
+		autoCleanup(osc, gain);
+
+		osc.start(now);
+		osc.stop(now + 0.15);
 	}
 
 	public playRelayClick(ctx: AudioContext | null, masterGain: GainNode | null, isMuted: boolean): void {

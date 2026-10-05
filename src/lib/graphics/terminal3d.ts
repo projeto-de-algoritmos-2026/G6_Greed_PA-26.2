@@ -248,6 +248,10 @@ export class Terminal3DManager {
 		this.lighting.applyLightingMode(this.scene, this.currentPhase);
 	}
 
+	public setHullDamage(level: number): void {
+		this.openings.setPersistentDamage(level);
+	}
+
 	public notifyPlayerAction(action: PlayerActionType): void {
 		this.eventDirector.notifyPlayerAction(action);
 	}

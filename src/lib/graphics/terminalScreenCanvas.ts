@@ -18,12 +18,65 @@ export interface TerminalScreenState {
 	fullBitStream: string;
 	currentBitIndex: number;
 	safeBitQuota: number;
+	// Símbolos cuja frequência chegou corrompida e aparece como "??".
+	hiddenChars: string[];
+	silenceRemaining: number;
+	leakMultiplier: number;
+	hullIntegrity: number;
+	isTransmissionInterrupted: boolean;
+	holdRemaining: number;
+	// Código de cada caractere da mensagem, na ordem de transmissão.
+	symbolCodes: string[];
+	isAlternativeOptimal: boolean;
+	hasDecode: boolean;
+	gameOverCause: string | null;
+	decode: DecodeScreenState | null;
+}
+
+export type DecodeStage = 'decoding' | 'verdict' | 'result';
+export type DecodeResult = 'RESCUE' | 'MIMIC_DETECTED' | 'RESCUE_LOST';
+
+export interface DecodeScreenState {
+	root: HuffmanNode;
+	bits: string;
+	cursor: number;
+	decoded: string;
+	treeBits: number;
+	stage: DecodeStage;
+	result: DecodeResult | null;
+	lastGuessWrong: boolean;
 }
 
 export type ScreenActionCallback = (action: {
-	type: 'SELECT_NODE' | 'MERGE' | 'UNDO' | 'RESET' | 'TRANSMIT' | 'RETRY' | 'NEXT_LEVEL';
+	type:
+		| 'SELECT_NODE'
+		| 'MERGE'
+		| 'UNDO'
+		| 'RESET'
+		| 'TRANSMIT'
+		| 'RETRY'
+		| 'NEXT_LEVEL'
+		| 'START_DECODE'
+		| 'DECODE_PICK'
+		| 'VERDICT'
+		| 'RESUME_FORCE'
+		| 'RESUME_HOLD';
 	nodeId?: string;
+	char?: string;
+	authentic?: boolean;
 }) => void;
+
+interface TreeDrawOptions {
+	selectedIds: readonly string[];
+	// Nós realçados como disponíveis; null realça todos.
+	availableIds: ReadonlySet<string> | null;
+	hiddenIds: ReadonlySet<string>;
+	isClickable: (node: HuffmanNode) => boolean;
+	onClick: (node: HuffmanNode) => void;
+}
+
+const nodeLabel = (node: HuffmanNode): string =>
+	node.isLeaf ? (node.char === ' ' ? '␣' : (node.char ?? '')) : 'Σ';
 
 interface InteractiveRect {
 	x: number;
@@ -141,6 +194,10 @@ export class TerminalScreenCanvas {
 			this.renderGameOverScreen(ctx, state);
 			return;
 		}
+		if (state.decode) {
+			this.renderDecodeScreen(ctx, state, state.decode);
+			return;
+		}
 		if (state.isVictory) {
 			this.renderVictoryScreen(ctx, state);
 			return;
@@ -155,6 +212,7 @@ export class TerminalScreenCanvas {
 		this.renderHydrophoneScope(ctx, state);
 		this.renderHuffmanTreeArea(ctx, state);
 		this.renderBottomControls(ctx, state);
+		if (state.silenceRemaining > 0) this.renderSilenceWarning(ctx, state);
 
 		ctx.strokeStyle = 'rgba(0, 255, 170, 0.35)';
 		ctx.lineWidth = 2;
@@ -245,12 +303,21 @@ export class TerminalScreenCanvas {
 			ctx.fillRect(px + 15, py + 153, (pw - 30) * effRatio, 8);
 		}
 
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillStyle = state.leakMultiplier > 1 ? '#ffaa00' : 'rgba(0, 255, 170, 0.75)';
+		ctx.fillText(`VAZAMENTO x${state.leakMultiplier.toFixed(2)}`, px + 14, py + 180);
+		ctx.textAlign = 'right';
+		ctx.fillStyle =
+			state.hullIntegrity < 50 ? '#ff3b3b' : state.hullIntegrity < 80 ? '#ffaa00' : 'rgba(0, 255, 170, 0.75)';
+		ctx.fillText(`CASCO ${Math.round(state.hullIntegrity)}%`, px + pw - 14, py + 180);
+		ctx.textAlign = 'left';
+
 		ctx.font = 'bold 11px "Courier New", monospace';
 		ctx.fillStyle = state.isTreeComplete ? '#00ffaa' : '#ffaa00';
 		ctx.fillText(
 			state.isTreeComplete ? '● TRANSMISSÃO PRONTA' : `● ${state.availableNodes.length} NÓS PENDENTES`,
 			px + 14,
-			py + 192
+			py + 204
 		);
 	}
 
@@ -348,18 +415,53 @@ export class TerminalScreenCanvas {
 		ctx.textAlign = 'left';
 		ctx.fillText('DIAGRAMA BINÁRIO (SELECIONE 2 NÓS)', tx + 14, ty + 22);
 
-		// Layout dos nós (as raízes da floresta são os nós ainda disponíveis).
+		const availableIds = new Set(state.availableNodes.map((n) => n.id));
+		this.drawTree(ctx, state.availableNodes, tx + 20, ty + 36, tw - 40, th - 48, {
+			selectedIds: state.selectedNodeIds,
+			availableIds,
+			hiddenIds: this.hiddenNodeIds(state.availableNodes, state.hiddenChars),
+			isClickable: (node) => availableIds.has(node.id),
+			onClick: (node) => this.onAction?.({ type: 'SELECT_NODE', nodeId: node.id })
+		});
+	}
+
+	/**
+	 * Ids dos nós cujo peso não pode ser exibido: folhas corrompidas e todo
+	 * ancestral delas (a soma revelaria o valor oculto).
+	 */
+	private hiddenNodeIds(roots: HuffmanNode[], hiddenChars: string[]): Set<string> {
+		const hidden = new Set<string>();
+		if (hiddenChars.length === 0) return hidden;
+		const visit = (node: HuffmanNode): boolean => {
+			let isHidden = node.isLeaf && node.char !== null && hiddenChars.includes(node.char);
+			if (node.left && visit(node.left)) isHidden = true;
+			if (node.right && visit(node.right)) isHidden = true;
+			if (isHidden) hidden.add(node.id);
+			return isHidden;
+		};
+		roots.forEach(visit);
+		return hidden;
+	}
+
+	private drawTree(
+		ctx: CanvasRenderingContext2D,
+		roots: HuffmanNode[],
+		left: number,
+		top: number,
+		areaWidth: number,
+		areaHeight: number,
+		opts: TreeDrawOptions
+	): void {
 		// As posições ficam num mapa local indexado por id: os nós chegam do Svelte
 		// como proxies de $state, e gravar x/y neles não se propaga entre cópias.
 		const { nodes, positions, nodeW: nw, nodeH: nh } = this.layoutNodes(
-			state.availableNodes,
-			tx + 20,
-			ty + 36,
-			tw - 40,
-			th - 48
+			roots,
+			left,
+			top,
+			areaWidth,
+			areaHeight
 		);
 		const pos = (node: HuffmanNode) => positions.get(node.id)!;
-		const availableIds = new Set(state.availableNodes.map((n) => n.id));
 		const scale = Math.min(nw / 48, nh / 38);
 		const labelSize = Math.max(9, Math.round(14 * scale));
 		const weightSize = Math.max(8, Math.round(10 * scale));
@@ -393,13 +495,13 @@ export class TerminalScreenCanvas {
 
 		for (const node of nodes) {
 			const { x: nx, y: ny } = pos(node);
-			const isSelected = state.selectedNodeIds.includes(node.id);
-			const isAvailable = availableIds.has(node.id);
+			const isSelected = opts.selectedIds.includes(node.id);
+			const isAvailable = opts.availableIds === null || opts.availableIds.has(node.id);
+			const weight = opts.hiddenIds.has(node.id) ? '??' : `${node.weight}`;
 			const labelY = ny - nh * 0.08;
 			const weightY = ny + nh * 0.32;
 
 			if (isSelected) {
-
 				ctx.fillStyle = '#00ffaa';
 				ctx.fillRect(nx - nw / 2, ny - nh / 2, nw, nh);
 				ctx.strokeStyle = '#ffffff';
@@ -409,13 +511,11 @@ export class TerminalScreenCanvas {
 				ctx.textAlign = 'center';
 				ctx.fillStyle = '#010d08';
 				ctx.font = `bold ${labelSize}px "Courier New", monospace`;
-				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, labelY);
+				ctx.fillText(nodeLabel(node), nx, labelY);
 
 				ctx.font = `bold ${weightSize}px "Courier New", monospace`;
-				ctx.fillText(`${node.weight}`, nx, weightY);
+				ctx.fillText(weight, nx, weightY);
 			} else {
-
 				ctx.fillStyle = isAvailable ? '#012015' : '#01120c';
 				ctx.fillRect(nx - nw / 2, ny - nh / 2, nw, nh);
 				ctx.strokeStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.25)';
@@ -425,23 +525,20 @@ export class TerminalScreenCanvas {
 				ctx.textAlign = 'center';
 				ctx.fillStyle = isAvailable ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
 				ctx.font = `bold ${Math.max(9, labelSize - 1)}px "Courier New", monospace`;
-				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', nx, labelY);
+				ctx.fillText(nodeLabel(node), nx, labelY);
 
 				ctx.font = `${weightSize}px "Courier New", monospace`;
 				ctx.fillStyle = isAvailable ? '#00ffaa' : 'rgba(0, 255, 170, 0.4)';
-				ctx.fillText(`${node.weight}`, nx, weightY);
+				ctx.fillText(weight, nx, weightY);
 			}
 
-			if (isAvailable) {
+			if (opts.isClickable(node)) {
 				this.interactiveRects.push({
 					x: nx - nw / 2,
 					y: ny - nh / 2,
 					w: nw,
 					h: nh,
-					action: () => {
-						this.onAction?.({ type: 'SELECT_NODE', nodeId: node.id });
-					}
+					action: () => opts.onClick(node)
 				});
 			}
 		}
@@ -590,15 +687,21 @@ export class TerminalScreenCanvas {
 			by + 72
 		);
 
-		const cardW = 68;
+		// Alfabetos maiores encolhem os cartões para que todos caibam na bandeja.
+		const count = Math.max(1, state.availableNodes.length);
+		const gap = count > 12 ? 6 : 12;
+		const cardW = Math.min(68, (this.width - 48 - gap * (count - 1)) / count);
 		const cardH = 68;
-		const gap = 12;
 		const startX = 24;
 		const cardY = by + 86;
+		const hiddenIds = this.hiddenNodeIds(state.availableNodes, state.hiddenChars);
+		const glyphSize = Math.round(Math.min(22, cardW * 0.42));
+		const weightFont = Math.round(Math.min(11, cardW * 0.2));
 
 		state.availableNodes.forEach((node, i) => {
 			const cx = startX + i * (cardW + gap);
-			if (cx + cardW > this.width - 24) return;
+			const weightText = hiddenIds.has(node.id) ? '??' : `${node.weight}`;
+			const weightLabel = cardW >= 60 ? `PESO: ${weightText}` : weightText;
 
 			const isSelected = state.selectedNodeIds.includes(node.id);
 
@@ -611,12 +714,11 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = '#010d08';
-				ctx.font = 'bold 22px "Courier New", monospace';
-				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', cx + cardW / 2, cardY + 34);
+				ctx.font = `bold ${glyphSize}px "Courier New", monospace`;
+				ctx.fillText(nodeLabel(node), cx + cardW / 2, cardY + 34);
 
-				ctx.font = 'bold 11px "Courier New", monospace';
-				ctx.fillText(`PESO: ${node.weight}`, cx + cardW / 2, cardY + 54);
+				ctx.font = `bold ${weightFont}px "Courier New", monospace`;
+				ctx.fillText(weightLabel, cx + cardW / 2, cardY + 54);
 			} else {
 				ctx.fillStyle = '#012015';
 				ctx.fillRect(cx, cardY, cardW, cardH);
@@ -626,13 +728,12 @@ export class TerminalScreenCanvas {
 
 				ctx.textAlign = 'center';
 				ctx.fillStyle = '#ffffff';
-				ctx.font = 'bold 22px "Courier New", monospace';
-				const label = node.isLeaf ? (node.char === ' ' ? '␣' : node.char) : 'Σ';
-				ctx.fillText(label ?? '', cx + cardW / 2, cardY + 34);
+				ctx.font = `bold ${glyphSize}px "Courier New", monospace`;
+				ctx.fillText(nodeLabel(node), cx + cardW / 2, cardY + 34);
 
-				ctx.font = '11px "Courier New", monospace';
+				ctx.font = `${weightFont}px "Courier New", monospace`;
 				ctx.fillStyle = '#00ffaa';
-				ctx.fillText(`PESO: ${node.weight}`, cx + cardW / 2, cardY + 54);
+				ctx.fillText(weightLabel, cx + cardW / 2, cardY + 54);
 			}
 
 			this.interactiveRects.push({
@@ -702,6 +803,28 @@ export class TerminalScreenCanvas {
 		}
 	}
 
+	private renderSilenceWarning(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
+		const w = 420;
+		const h = 54;
+		const x = (this.width - w) / 2;
+		const y = 112;
+		const pulse = 0.55 + 0.45 * Math.abs(Math.sin(this.hydrophonePhase * 0.8));
+
+		ctx.fillStyle = 'rgba(40, 0, 0, 0.88)';
+		ctx.fillRect(x, y, w, h);
+		ctx.strokeStyle = `rgba(255, 59, 59, ${pulse})`;
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, w, h);
+
+		ctx.textAlign = 'center';
+		ctx.fillStyle = '#ff3b3b';
+		ctx.font = 'bold 15px "Courier New", monospace';
+		ctx.fillText(`⚠ CONTATO PRÓXIMO // SILÊNCIO TOTAL ${state.silenceRemaining.toFixed(1)}s`, x + w / 2, y + 22);
+		ctx.fillStyle = 'rgba(255, 200, 200, 0.85)';
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillText('A ENTIDADE ESTÁ ESCUTANDO. QUALQUER COMANDO GERA RUÍDO.', x + w / 2, y + 42);
+	}
+
 	private renderTransmissionScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
 		ctx.fillStyle = 'rgba(30, 4, 4, 0.4)';
 		ctx.fillRect(0, 0, this.width, this.height);
@@ -709,14 +832,31 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#ff3b3b';
 		ctx.font = 'bold 24px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('TRANSMISSÃO SONAR ATIVA', this.width / 2, 120);
+		ctx.fillText('TRANSMISSÃO SONAR ATIVA', this.width / 2, 110);
 
 		ctx.font = '15px "Courier New", monospace';
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
 		ctx.fillText(
 			`PULSOS ACÚSTICOS: ${state.currentBitIndex} / ${state.fullBitStream.length}`,
 			this.width / 2,
-			160
+			145
+		);
+
+		// Cada símbolo da mensagem ocupa um grupo de bits; os grupos são separados
+		// visualmente e o símbolo em transmissão é exibido com seu código.
+		const chars = [...state.message];
+		const groupOfBit: number[] = [];
+		state.symbolCodes.forEach((code, g) => {
+			for (let k = 0; k < code.length; k++) groupOfBit.push(g);
+		});
+		const currentGroup = groupOfBit[Math.min(state.currentBitIndex, groupOfBit.length - 1)] ?? 0;
+		const currentChar = chars[currentGroup] === ' ' ? '␣' : (chars[currentGroup] ?? '');
+		ctx.fillStyle = '#00ffaa';
+		ctx.font = 'bold 15px "Courier New", monospace';
+		ctx.fillText(
+			`SÍMBOLO ${currentGroup + 1}/${chars.length}: '${currentChar}' = ${state.symbolCodes[currentGroup] ?? ''}`,
+			this.width / 2,
+			178
 		);
 
 		ctx.fillStyle = '#01120a';
@@ -732,15 +872,17 @@ export class TerminalScreenCanvas {
 
 		for (let i = 0; i < state.fullBitStream.length; i++) {
 			const bit = state.fullBitStream[i];
+			const group = groupOfBit[i] ?? 0;
 			if (i < state.currentBitIndex) {
-				ctx.fillStyle = '#00ffaa';
+				ctx.fillStyle = group % 2 === 0 ? '#00ffaa' : '#7dffd2';
 			} else if (i === state.currentBitIndex) {
 				ctx.fillStyle = '#ffffff';
 			} else {
-				ctx.fillStyle = '#0a3824';
+				ctx.fillStyle = group === currentGroup ? '#1d6b4b' : '#0a3824';
 			}
 			ctx.fillText(bit, cursorX, cursorY);
-			cursorX += 16;
+			cursorX += 14;
+			if (groupOfBit[i + 1] !== group) cursorX += 8;
 			if (cursorX > this.width - 110) {
 				cursorX = 96;
 				cursorY += 28;
@@ -760,6 +902,66 @@ export class TerminalScreenCanvas {
 
 		ctx.fillStyle = '#ff3b3b';
 		ctx.fillRect(161, 541, ((this.width - 322) * state.acousticProximity) / 100, 20);
+
+		if (state.holdRemaining > 0) {
+			ctx.fillStyle = '#ffaa00';
+			ctx.font = 'bold 14px "Courier New", monospace';
+			ctx.fillText(
+				`SINAL SEGURO // CASCO SOB ESTRESSE: ${state.holdRemaining.toFixed(1)}s`,
+				this.width / 2,
+				600
+			);
+		}
+
+		if (state.isTransmissionInterrupted) this.renderInterruptionPrompt(ctx);
+	}
+
+	private renderInterruptionPrompt(ctx: CanvasRenderingContext2D): void {
+		const w = 640;
+		const h = 220;
+		const x = (this.width - w) / 2;
+		const y = 230;
+
+		ctx.fillStyle = 'rgba(30, 0, 0, 0.94)';
+		ctx.fillRect(x, y, w, h);
+		ctx.strokeStyle = '#ff3b3b';
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, w, h);
+
+		ctx.textAlign = 'center';
+		ctx.fillStyle = '#ff3b3b';
+		ctx.font = 'bold 20px "Courier New", monospace';
+		ctx.fillText('⚠ IMPACTO NO CASCO // TRANSMISSÃO SUSPENSA', this.width / 2, y + 40);
+		ctx.fillStyle = 'rgba(255, 220, 220, 0.9)';
+		ctx.font = '13px "Courier New", monospace';
+		ctx.fillText('A ENTIDADE ESTÁ COLADA AO CASCO. O RUÍDO SOBE ENQUANTO VOCÊ HESITA.', this.width / 2, y + 72);
+
+		this.renderTactileButton(
+			ctx,
+			x + 24,
+			y + 100,
+			w / 2 - 36,
+			54,
+			'[ENTER] CONTINUAR',
+			true,
+			() => this.onAction?.({ type: 'RESUME_FORCE' }),
+			true
+		);
+		this.renderTactileButton(
+			ctx,
+			x + w / 2 + 12,
+			y + 100,
+			w / 2 - 36,
+			54,
+			'[S] SEGURAR SINAL',
+			true,
+			() => this.onAction?.({ type: 'RESUME_HOLD' })
+		);
+
+		ctx.font = '11px "Courier New", monospace';
+		ctx.fillStyle = 'rgba(255, 200, 200, 0.75)';
+		ctx.fillText('Próximos bits com ruído dobrado', x + w / 4 + 6, y + 178);
+		ctx.fillText('Pausa curta, mas danifica o casco', x + (3 * w) / 4 - 6, y + 178);
 	}
 
 	private renderGameOverScreen(ctx: CanvasRenderingContext2D, state: TerminalScreenState): void {
@@ -774,7 +976,7 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
 		ctx.font = '15px "Courier New", monospace';
 		ctx.fillText('PRESSÃO CRÍTICA. CASCO ROMPIDO.', this.width / 2, 260);
-		ctx.fillText('A ENTIDADE DETECTOU O SONAR.', this.width / 2, 290);
+		ctx.fillText(state.gameOverCause ?? 'A ENTIDADE DETECTOU O SONAR.', this.width / 2, 290);
 
 		ctx.fillStyle = 'rgba(255, 120, 120, 0.9)';
 		ctx.fillText(`Bits: ${state.currentBitIndex} | Limite seguro: ${state.safeBitQuota}`, this.width / 2, 340);
@@ -799,37 +1001,205 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 28px "Courier New", monospace';
 		ctx.textAlign = 'center';
-		ctx.fillText('SINAL TRANSMITIDO COM SUCESSO', this.width / 2, 160);
+		ctx.fillText('SINAL TRANSMITIDO COM SUCESSO', this.width / 2, 150);
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
 		ctx.font = '15px "Courier New", monospace';
-		ctx.fillText('SONAR SILENCIADO A TEMPO.', this.width / 2, 210);
-		ctx.fillText('A CRIATURA PERDEU O RASTRO NA FENDA.', this.width / 2, 236);
+		ctx.fillText('SONAR SILENCIADO A TEMPO.', this.width / 2, 196);
+		ctx.fillText('A CRIATURA PERDEU O RASTRO NA FENDA.', this.width / 2, 222);
 
 		ctx.fillStyle = '#00ffaa';
 		ctx.font = 'bold 18px "Courier New", monospace';
-		ctx.fillText(`EFICIÊNCIA GULOSA: ${state.metrics.efficiency}%`, this.width / 2, 280);
+		ctx.fillText(`EFICIÊNCIA GULOSA: ${state.metrics.efficiency}%`, this.width / 2, 266);
 
 		ctx.fillStyle = 'rgba(0, 255, 170, 0.8)';
 		ctx.font = '13px "Courier New", monospace';
-		ctx.fillText(`Bits: ${state.metrics.rawAsciiBits}  ➔  ${state.metrics.playerBits}`, this.width / 2, 314);
-		ctx.fillText(`Economia de Ruído: ${state.metrics.compressionRatio}%`, this.width / 2, 338);
+		ctx.fillText(`Bits: ${state.metrics.rawAsciiBits}  ➔  ${state.metrics.playerBits}`, this.width / 2, 298);
+		ctx.fillText(`Economia de Ruído: ${state.metrics.compressionRatio}%`, this.width / 2, 320);
+		ctx.fillStyle =
+			state.hullIntegrity < 50 ? '#ff3b3b' : state.hullIntegrity < 80 ? '#ffaa00' : 'rgba(0, 255, 170, 0.8)';
+		ctx.fillText(`Integridade do casco: ${Math.round(state.hullIntegrity)}%`, this.width / 2, 342);
+
+		if (state.isAlternativeOptimal) {
+			ctx.fillStyle = '#ffffff';
+			ctx.font = 'bold 12px "Courier New", monospace';
+			ctx.fillText('SUA ÁRVORE DIFERE DA REFERÊNCIA, MAS TEM O MESMO CUSTO:', this.width / 2, 372);
+			ctx.fillText('EMPATES DE FREQUÊNCIA GERAM VÁRIAS ÁRVORES ÓTIMAS.', this.width / 2, 390);
+		}
 
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
 		ctx.font = '12px "Courier New", monospace';
-		ctx.fillText('AGUARDANDO EQUIPE DE RESGATE...', this.width / 2, 380);
+		ctx.fillText(
+			state.hasDecode ? 'SINAL DE RETORNO DETECTADO NO HIDROFONE...' : 'AGUARDANDO EQUIPE DE RESGATE...',
+			this.width / 2,
+			416
+		);
 
 		this.renderTactileButton(
 			ctx,
 			this.width / 2 - 180,
-			430,
+			440,
 			360,
 			50,
-			'[ PRÓXIMO SETOR ]',
+			state.hasDecode ? '[ DECODIFICAR RESPOSTA: ENTER ]' : '[ PRÓXIMO SETOR ]',
 			true,
-			() => this.onAction?.({ type: 'NEXT_LEVEL' }),
+			() => this.onAction?.({ type: state.hasDecode ? 'START_DECODE' : 'NEXT_LEVEL' }),
 			true
 		);
+	}
+
+	private renderDecodeScreen(
+		ctx: CanvasRenderingContext2D,
+		state: TerminalScreenState,
+		decode: DecodeScreenState
+	): void {
+		ctx.fillStyle = 'rgba(0, 16, 22, 0.55)';
+		ctx.fillRect(0, 0, this.width, this.height);
+
+		ctx.textAlign = 'center';
+		ctx.fillStyle = '#00e5ff';
+		ctx.font = 'bold 20px "Courier New", monospace';
+		ctx.fillText('SINAL DE RETORNO // DECODIFICAÇÃO MANUAL', this.width / 2, 40);
+
+		ctx.textAlign = 'right';
+		ctx.font = 'bold 13px "Courier New", monospace';
+		const risk = Math.round(state.acousticProximity);
+		ctx.fillStyle = risk > 75 ? '#ff3b3b' : risk > 45 ? '#ffaa00' : '#00ffaa';
+		ctx.fillText(`RISCO: ${risk}%`, this.width - 24, 40);
+
+		// Fluxo de bits: o trecho já decodificado fica aceso e o cursor marca
+		// onde começa o próximo código (o jogador precisa achar onde ele termina).
+		ctx.fillStyle = '#01120a';
+		ctx.fillRect(24, 56, this.width - 48, 108);
+		ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(24, 56, this.width - 48, 108);
+
+		ctx.textAlign = 'left';
+		ctx.font = '16px "Courier New", monospace';
+		let bx = 38;
+		let by = 82;
+		for (let i = 0; i < decode.bits.length; i++) {
+			if (i < decode.cursor) ctx.fillStyle = '#00ffaa';
+			else if (i === decode.cursor) ctx.fillStyle = decode.lastGuessWrong ? '#ff3b3b' : '#ffffff';
+			else ctx.fillStyle = 'rgba(0, 229, 255, 0.45)';
+			ctx.fillText(decode.bits[i], bx, by);
+			bx += 12;
+			if (bx > this.width - 48) {
+				bx = 38;
+				by += 24;
+			}
+		}
+
+		ctx.fillStyle = '#ffffff';
+		ctx.font = 'bold 16px "Courier New", monospace';
+		const caret = decode.stage === 'decoding' && Math.sin(this.hydrophonePhase * 1.4) > 0 ? '_' : ' ';
+		ctx.fillText(`TEXTO: ${decode.decoded}${caret}`, 30, 190);
+
+		this.drawTree(ctx, [decode.root], 40, 206, this.width - 80, 360, {
+			selectedIds: [],
+			availableIds: null,
+			hiddenIds: new Set(),
+			isClickable: (node) => decode.stage === 'decoding' && node.isLeaf,
+			onClick: (node) => this.onAction?.({ type: 'DECODE_PICK', char: node.char ?? undefined })
+		});
+
+		const py = 590;
+		ctx.fillStyle = 'rgba(0, 14, 10, 0.9)';
+		ctx.fillRect(12, py, this.width - 24, 166);
+		ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+		ctx.strokeRect(12, py, this.width - 24, 166);
+		ctx.textAlign = 'center';
+
+		if (decode.stage === 'decoding') {
+			ctx.fillStyle = '#00e5ff';
+			ctx.font = 'bold 14px "Courier New", monospace';
+			ctx.fillText(
+				'Siga os bits a partir da raiz até uma folha: 0 = esquerda, 1 = direita.',
+				this.width / 2,
+				py + 36
+			);
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+			ctx.font = '13px "Courier New", monospace';
+			ctx.fillText(
+				'Digite o caractere encontrado ou clique na folha. Cada erro gera ruído.',
+				this.width / 2,
+				py + 64
+			);
+			if (decode.lastGuessWrong) {
+				ctx.fillStyle = '#ff3b3b';
+				ctx.font = 'bold 13px "Courier New", monospace';
+				ctx.fillText('CARACTERE INCORRETO // RUÍDO NO HIDROFONE', this.width / 2, py + 100);
+			}
+		} else if (decode.stage === 'verdict') {
+			ctx.fillStyle = '#ffffff';
+			ctx.font = 'bold 14px "Courier New", monospace';
+			ctx.fillText(
+				`A superfície sempre usa a árvore gulosa ótima. Custo desta árvore: ${decode.treeBits}b.`,
+				this.width / 2,
+				py + 30
+			);
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+			ctx.font = '12px "Courier New", monospace';
+			ctx.fillText(
+				'Confira os pesos: as folhas mais profundas deveriam ser as menos frequentes.',
+				this.width / 2,
+				py + 52
+			);
+			this.renderTactileButton(
+				ctx,
+				this.width / 2 - 310,
+				py + 74,
+				300,
+				50,
+				'[A] AUTÊNTICA',
+				true,
+				() => this.onAction?.({ type: 'VERDICT', authentic: true }),
+				true
+			);
+			this.renderTactileButton(
+				ctx,
+				this.width / 2 + 10,
+				py + 74,
+				300,
+				50,
+				'[I] IMITAÇÃO DA ENTIDADE',
+				true,
+				() => this.onAction?.({ type: 'VERDICT', authentic: false })
+			);
+		} else {
+			const [title, detail, color] =
+				decode.result === 'RESCUE'
+					? ['RESPOSTA AUTÊNTICA // RESGATE CONFIRMADO', 'A equipe da superfície segue a sua posição.', '#00ffaa']
+					: decode.result === 'MIMIC_DETECTED'
+						? [
+								'IMITAÇÃO DETECTADA // SINAL IGNORADO',
+								`A árvore custava ${decode.treeBits}b: não era gulosa. A entidade se afasta.`,
+								'#00e5ff'
+							]
+						: [
+								'ERA A SUPERFÍCIE // CONTATO DE RESGATE PERDIDO',
+								'A árvore era ótima. O resgate tentará de novo no próximo setor.',
+								'#ffaa00'
+							];
+			ctx.fillStyle = color;
+			ctx.font = 'bold 16px "Courier New", monospace';
+			ctx.fillText(title, this.width / 2, py + 30);
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+			ctx.font = '13px "Courier New", monospace';
+			ctx.fillText(detail, this.width / 2, py + 54);
+			this.renderTactileButton(
+				ctx,
+				this.width / 2 - 180,
+				py + 74,
+				360,
+				50,
+				'[ PRÓXIMO SETOR: ENTER ]',
+				true,
+				() => this.onAction?.({ type: 'NEXT_LEVEL' }),
+				true
+			);
+		}
 	}
 
 	private renderBootScreen(

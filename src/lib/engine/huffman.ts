@@ -317,6 +317,19 @@ export class HuffmanEngine {
 		};
 	}
 
+	/**
+	 * Verdadeiro quando a árvore do jogador tem custo ótimo mas atribui
+	 * comprimentos de código diferentes da árvore de referência: com empates
+	 * de frequência, existem várias árvores de Huffman igualmente ótimas.
+	 */
+	public isAlternativeOptimal(): boolean {
+		if (!this.playerRoot || this.playerTotalBits !== this.optimalTotalBits) return false;
+		for (const [char, code] of this.optimalCodes) {
+			if (this.playerCodes.get(char)?.length !== code.length) return true;
+		}
+		return false;
+	}
+
 	public isGreedyChoice(idA: string, idB: string): boolean {
 		if (this.availableNodes.length <= 2) return true;
 
