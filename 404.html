@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="text-scale" content="scale" />
+		<script>
+			if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+				navigator.serviceWorker.getRegistrations().then((registrations) => {
+					for (const reg of registrations) {
+						reg.unregister();
+					}
+				});
+			}
+		</script>
+		<link rel="icon" type="image/png" href="/G6_Greed_PA-26.2/terminal.png" />
+		<link href="/G6_Greed_PA-26.2/_app/immutable/entry/start.x184x1UE.js" rel="modulepreload">
+		<link href="/G6_Greed_PA-26.2/_app/immutable/chunks/Bm0bMZV_.js" rel="modulepreload">
+		<link href="/G6_Greed_PA-26.2/_app/immutable/chunks/DV9Bbhy4.js" rel="modulepreload">
+		<link href="/G6_Greed_PA-26.2/_app/immutable/entry/app.B6tsVGzD.js" rel="modulepreload">
+		<link href="/G6_Greed_PA-26.2/_app/immutable/chunks/xihTtKlq.js" rel="modulepreload">
+		<link href="/G6_Greed_PA-26.2/_app/immutable/nodes/0.WggdOky6.js" rel="modulepreload">
+		
+		<link href="/G6_Greed_PA-26.2/_app/immutable/assets/0.f73K1Adn.css" rel="stylesheet">
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_1syneam = {
+						base: "/G6_Greed_PA-26.2",
+						assets: "/G6_Greed_PA-26.2"
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/G6_Greed_PA-26.2/_app/immutable/entry/start.x184x1UE.js"),
+						import("/G6_Greed_PA-26.2/_app/immutable/entry/app.B6tsVGzD.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+	</body>
+</html>
