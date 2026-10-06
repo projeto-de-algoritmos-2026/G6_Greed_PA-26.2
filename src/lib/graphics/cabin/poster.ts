@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createDarkRibTexture } from '../textures/procedural';
+import { loadTerminalLogoImage } from '../terminalLogo';
 
 function drawTintedImage(
 	ctx: CanvasRenderingContext2D,
@@ -84,20 +85,11 @@ export class DystopianPoster {
 
 		this.group.userData = { isPoster: true };
 
-		const logoImg = new Image();
-		logoImg.src = '/terminal.png';
-
-		const render = () => {
+		loadTerminalLogoImage((logoImg) => {
 			this.renderPosterContent(ctx, W, H, logoImg);
 			posterTexture.needsUpdate = true;
-		};
-
-		if (logoImg.complete && logoImg.naturalWidth > 0) {
-			render();
-		} else {
-			render(); 
-			logoImg.onload = () => render();
-		}
+		});
+		this.renderPosterContent(ctx, W, H, new Image());
 	}
 
 	private renderPosterContent(

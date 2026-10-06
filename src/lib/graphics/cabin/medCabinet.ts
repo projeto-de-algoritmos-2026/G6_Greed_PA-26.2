@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createDarkRibTexture } from '../textures/procedural';
+import { loadTerminalLogoImage } from '../terminalLogo';
 
 function drawTintedImage(
 	ctx: CanvasRenderingContext2D,
@@ -185,20 +186,11 @@ export class MedCabinet {
 		manualTexture.minFilter = THREE.LinearMipmapLinearFilter;
 		manualTexture.magFilter = THREE.LinearFilter;
 
-		const logoImg = new Image();
-		logoImg.src = '/terminal.png';
-
-		const renderManual = () => {
+		loadTerminalLogoImage((logoImg) => {
 			this.renderHuffmanNotebookCanvas(mctx, S, logoImg);
 			manualTexture.needsUpdate = true;
-		};
-
-		if (logoImg.complete && logoImg.naturalWidth > 0) {
-			renderManual();
-		} else {
-			renderManual();
-			logoImg.onload = () => renderManual();
-		}
+		});
+		this.renderHuffmanNotebookCanvas(mctx, S, new Image());
 
 		const manualSheet = new THREE.Mesh(
 			new THREE.PlaneGeometry(0.96, 1.00),

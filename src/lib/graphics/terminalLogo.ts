@@ -1,6 +1,39 @@
 
 export type PhosphorTheme = 'green' | 'amber' | 'cyan' | 'white';
 
+export function getTerminalLogoCandidates(): string[] {
+	const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+	return [
+		base ? `${base}/terminal.png` : '/terminal.png',
+		'./terminal.png',
+		'/terminal.png'
+	];
+}
+
+export function loadTerminalLogoImage(onLoad: (img: HTMLImageElement) => void): HTMLImageElement {
+	const candidates = getTerminalLogoCandidates();
+	const img = new Image();
+	let idx = 0;
+
+	const tryNext = () => {
+		if (idx >= candidates.length) return;
+		img.src = candidates[idx++];
+		if (img.complete && img.naturalWidth > 0) {
+			onLoad(img);
+		}
+	};
+
+	img.onload = () => {
+		onLoad(img);
+	};
+	img.onerror = () => {
+		tryNext();
+	};
+
+	tryNext();
+	return img;
+}
+
 export class TerminalLogoManager {
 	private static instance: TerminalLogoManager | null = null;
 	private rawImage: HTMLImageElement | null = null;
@@ -22,11 +55,7 @@ export class TerminalLogoManager {
 	}
 
 	private loadImage(): void {
-		const img = new Image();
-		img.src = '/terminal.png';
-		img.crossOrigin = 'anonymous';
-
-		img.onload = () => {
+		loadTerminalLogoImage((img) => {
 			this.rawImage = img;
 			this.isLoaded = true;
 			this.buildCaches();
@@ -34,11 +63,7 @@ export class TerminalLogoManager {
 				cb();
 			}
 			this.loadListeners = [];
-		};
-
-		img.onerror = (err) => {
-			console.warn('[TerminalLogo] Falha ao carregar /terminal.png, usando fallback procedural', err);
-		};
+		});
 	}
 
 	public onLoad(cb: () => void): void {
