@@ -1,13 +1,6 @@
 import * as THREE from 'three';
 import type { WindowEventActor, EventContext, StartOptions } from '../types';
 
-/**
- * Creates static offscreen base for the cephalopod eye:
- * Ivory/silver deep-sea sclera with delicate crimson capillaries,
- * dark feathered limbus border, and over 360 striated cosmic amber,
- * gold, bronze, and emerald iris fibers.
- * Center is left ready for dynamic pupil rendering!
- */
 function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	const canvas = document.createElement('canvas');
 	canvas.width = 512;
@@ -17,7 +10,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	const cx = 256;
 	const cy = 256;
 
-	// 1. Sclera gradient (ivory cream to deep oceanic slate at margin)
 	const scleraGrad = ctx.createRadialGradient(cx, cy, 140, cx, cy, 256);
 	scleraGrad.addColorStop(0, '#fbf8f0');
 	scleraGrad.addColorStop(0.55, '#dfd6c6');
@@ -26,7 +18,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	ctx.fillStyle = scleraGrad;
 	ctx.fillRect(0, 0, 512, 512);
 
-	// 2. Delicate branching crimson capillary vessels in sclera
 	ctx.strokeStyle = 'rgba(165, 20, 35, 0.45)';
 	for (let v = 0; v < 32; v++) {
 		const baseAng = (v / 32) * Math.PI * 2;
@@ -54,7 +45,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 		ctx.stroke();
 	}
 
-	// 3. Dark feathered limbus border ring separating sclera and iris
 	const limbusGrad = ctx.createRadialGradient(cx, cy, 150, cx, cy, 172);
 	limbusGrad.addColorStop(0, 'rgba(2, 6, 4, 0)');
 	limbusGrad.addColorStop(0.6, 'rgba(4, 14, 10, 0.88)');
@@ -64,8 +54,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	ctx.arc(cx, cy, 172, 0, Math.PI * 2);
 	ctx.fill();
 
-	// 4. Iris: Cephalopod iridescent amber, golden-yellow, bronze, and deep emerald
-	// Iris radius is strictly 165px (leaving plenty of sclera visible around it!)
 	const irisR = 165;
 	const irisGrad = ctx.createRadialGradient(cx, cy, 40, cx, cy, irisR);
 	irisGrad.addColorStop(0, '#042217');
@@ -79,7 +67,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
 	ctx.fill();
 
-	// 5. Over 360 finely striated radial iris fibers and sphincter folds
 	const numStriae = 360;
 	for (let s = 0; s < numStriae; s++) {
 		const ang = (s / numStriae) * Math.PI * 2;
@@ -110,7 +97,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 		ctx.stroke();
 	}
 
-	// 6. Concentric wavy sphincter rings on iris
 	ctx.lineWidth = 1.6;
 	ctx.strokeStyle = 'rgba(190, 135, 25, 0.4)';
 	for (let r = 60; r <= 150; r += 16) {
@@ -129,10 +115,6 @@ function createStaticIrisBaseCanvas(): HTMLCanvasElement {
 	return canvas;
 }
 
-/**
- * Creates authentic Giant / Colossal Squid skin texture
- * with deep crimson/plum chromatophore mottling and bioluminescent sheen.
- */
 function createColossalSquidSkinTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 512;
@@ -156,7 +138,6 @@ function createColossalSquidSkinTexture(): THREE.CanvasTexture {
 		ctx.fill();
 	}
 
-	// Dense chromatophore freckle dots
 	for (let d = 0; d < 4000; d++) {
 		const dx = Math.random() * 512;
 		const dy = Math.random() * 512;
@@ -175,13 +156,6 @@ function createColossalSquidSkinTexture(): THREE.CanvasTexture {
 	return tex;
 }
 
-/**
- * Creates a seamless polar sphere geometry for the eyeball.
- * Concentric rings start from the forward pole (0, 0, +R) and sweep backward to (0, 0, -R).
- * Mathematically avoids Y-axis pole pinch, seams, and distortion:
- * Vertex (0, 0, +R) maps directly to canvas center (0.5, 0.5).
- * Looking at the sphere from +Z faces the pupil dead-center!
- */
 function createPolarEyeballGeometry(radius: number, numR: number = 36, numS: number = 48): THREE.BufferGeometry {
 	const geo = new THREE.BufferGeometry();
 	const vertices: number[] = [];
@@ -233,10 +207,6 @@ function createPolarEyeballGeometry(radius: number, numR: number = 36, numS: num
 	return geo;
 }
 
-/**
- * Creates continuous 360° cranial cowl geometry that surrounds the eye socket.
- * Spans seamlessly across both left (-X) and right (+X), top (+Y) and bottom (-Y).
- */
 function createCranialCowlGeometry(): THREE.BufferGeometry {
 	const geo = new THREE.BufferGeometry();
 	const vertices: number[] = [];
@@ -253,12 +223,10 @@ function createCranialCowlGeometry(): THREE.BufferGeometry {
 
 		for (let s = 0; s <= numS; s++) {
 			const theta = (s / numS) * Math.PI * 2;
-			const cosT = Math.cos(theta); // X
-			const sinT = Math.sin(theta); // Y
+			const cosT = Math.cos(theta); 
+			const sinT = Math.sin(theta); 
 
-			// Symmetrical lateral muscular cheeks on BOTH left (-X) and right (+X)
 			const lateralBulge = Math.pow(Math.abs(cosT), 1.5) * (0.65 + t * 0.55);
-			// Dorsal crest across the top (+Y)
 			const dorsalCrest = sinT > 0 ? Math.pow(sinT, 2.0) * 0.38 : 0;
 
 			const rx = (baseR + lateralBulge) * cosT;
@@ -308,11 +276,9 @@ export class ColossalEyeActor implements WindowEventActor {
 	public readonly supportsJumpscare = false;
 	public readonly root: THREE.Group;
 
-	// Hierarchy
 	private squidGroup: THREE.Group;
 	private eyePivot: THREE.Group;
 
-	// The SINGLE Eyeball & Dynamic Canvas Texture
 	private eyeballMesh: THREE.Mesh;
 	private eyeCanvas: HTMLCanvasElement;
 	private eyeCanvasCtx: CanvasRenderingContext2D;
@@ -320,14 +286,12 @@ export class ColossalEyeActor implements WindowEventActor {
 	private eyeTexture: THREE.CanvasTexture;
 	private lastDrawnPupilRadius: number = -1;
 
-	// Head & Socket
 	private headGroup: THREE.Group;
 	private cranialCowlMesh: THREE.Mesh;
 	private orbitalBrow: THREE.Mesh;
 	private eyePointLight: THREE.PointLight;
 	private orbitalPhotophores: THREE.Mesh[] = [];
 
-	// Body & Siphon
 	private mantleMesh: THREE.Mesh;
 	private mantleBasePositions: Float32Array;
 	private mantleRingCount: number = 24;
@@ -335,20 +299,16 @@ export class ColossalEyeActor implements WindowEventActor {
 	private terminalFins: THREE.Group;
 	private siphonMesh: THREE.Mesh;
 
-	// 8 Framing Arms & 2 Long Feeding Tentacles
 	private arms: SquidArm[] = [];
 	private feedingTentacles: FeedingTentacle[] = [];
 
-	// State & Timing
 	private elapsed: number = 0;
 	private duration: number = 15.0;
 	private opening: 'hatch' = 'hatch';
 
-	// Pupil dilation state (normalized 0.0 to 1.0)
 	private currentPupilDilation: number = 0.2;
 	private targetPupilDilation: number = 0.2;
 
-	// Audio & Event triggers
 	private stareAudioTriggered: boolean = false;
 	private leaveAudioTriggered: boolean = false;
 
@@ -359,7 +319,6 @@ export class ColossalEyeActor implements WindowEventActor {
 		this.squidGroup = new THREE.Group();
 		this.root.add(this.squidGroup);
 
-		// Shared Procedural Materials
 		const skinTex = createColossalSquidSkinTexture();
 
 		const squidSkinMat = new THREE.MeshStandardMaterial({
@@ -389,12 +348,6 @@ export class ColossalEyeActor implements WindowEventActor {
 			metalness: 0.45
 		});
 
-		// -----------------------------------------------------------
-		// 1. DYNAMIC EYE CANVAS TEXTURE PIPELINE (SINGLE SPHERE, NO ARTIFACTS!)
-		// Iris radius is strictly 165px.
-		// Pupil radius is strictly clamped between 50px and 105px.
-		// Pupil is ALWAYS within the iris with a rich 60px golden ring visible!
-		// -----------------------------------------------------------
 		this.staticIrisCanvas = createStaticIrisBaseCanvas();
 
 		this.eyeCanvas = document.createElement('canvas');
@@ -407,13 +360,6 @@ export class ColossalEyeActor implements WindowEventActor {
 
 		this.renderEyeCanvas(58);
 
-		// -----------------------------------------------------------
-		// 2. THE SINGLE COLOSSAL EYEBALL
-		// Polar geometry: pole (0, 0, +R) faces directly into the cabin!
-		// Radius = 1.35m.
-		// Position = (0.0, 0.0, -1.40).
-		// Front pole reaches Z = -1.40 + 1.35 = -0.05m (5cm outside window glass Z=0)!
-		// -----------------------------------------------------------
 		const eyeRadius = 1.35;
 
 		this.eyePivot = new THREE.Group();
@@ -435,13 +381,11 @@ export class ColossalEyeActor implements WindowEventActor {
 		this.eyeballMesh = new THREE.Mesh(eyeGeo, eyeMat);
 		this.eyePivot.add(this.eyeballMesh);
 
-		// Fleshy Orbital Brow Ring circling the perimeter of the eyeball
 		const browGeo = new THREE.TorusGeometry(eyeRadius + 0.08, 0.24, 16, 48);
 		this.orbitalBrow = new THREE.Mesh(browGeo, squidSkinMat);
 		this.orbitalBrow.position.set(0, 0, 0.12);
 		this.eyePivot.add(this.orbitalBrow);
 
-		// Bioluminescent Photophores encircling the orbital brow
 		const photoMat = new THREE.MeshBasicMaterial({ color: 0x3cf0c8 });
 		const photoGeo = new THREE.SphereGeometry(0.045, 8, 8);
 		for (let p = 0; p < 24; p++) {
@@ -453,25 +397,18 @@ export class ColossalEyeActor implements WindowEventActor {
 			this.eyePivot.add(pMesh);
 		}
 
-		// Eye Light: Hypnotic bio-luminescent beam cast straight through the porthole
 		this.eyePointLight = new THREE.PointLight(0x72f5d0, 3.8, 7.5, 1.8);
 		this.eyePointLight.position.set(0.0, 0.25, 0.6);
 		this.eyePivot.add(this.eyePointLight);
 
-		// -----------------------------------------------------------
-		// 3. CONTINUOUS 360° CRANIAL HEAD MASS (SEAMLESS ON BOTH SIDES!)
-		// Encompasses the eye from behind, above, below, left AND right!
-		// -----------------------------------------------------------
 		this.headGroup = new THREE.Group();
 		this.headGroup.position.set(0.0, 0.0, -1.40);
 		this.squidGroup.add(this.headGroup);
 
-		// Solid continuous cranial cowl spanning ±3.8m across the porthole
 		const cowlGeo = createCranialCowlGeometry();
 		this.cranialCowlMesh = new THREE.Mesh(cowlGeo, squidSkinMat);
 		this.headGroup.add(this.cranialCowlMesh);
 
-		// Muscular Siphon (Hyponome) on ventral side underneath the head
 		const siphonGeo = new THREE.CylinderGeometry(0.34, 0.62, 1.7, 18, 2, true);
 		siphonGeo.rotateZ(Math.PI / 2.3);
 		siphonGeo.scale(1.0, 0.85, 1.2);
@@ -479,7 +416,6 @@ export class ColossalEyeActor implements WindowEventActor {
 		this.siphonMesh.position.set(-0.3, -1.45, -1.2);
 		this.headGroup.add(this.siphonMesh);
 
-		// Conical Torpedo Mantle connects smoothly behind the cowl into the abyss
 		const numR = this.mantleRingCount;
 		const numS = this.mantleRadialCount;
 		const mantleVertices: number[] = [];
@@ -536,7 +472,6 @@ export class ColossalEyeActor implements WindowEventActor {
 		this.mantleMesh = new THREE.Mesh(mantleGeo, squidSkinMat);
 		this.headGroup.add(this.mantleMesh);
 
-		// Terminal diamond swimming fins at posterior mantle tip
 		this.terminalFins = new THREE.Group();
 		this.terminalFins.position.set(-9.8, -0.4, -5.6);
 		this.headGroup.add(this.terminalFins);
@@ -554,10 +489,6 @@ export class ColossalEyeActor implements WindowEventActor {
 		topFin.scale.set(0.65, 0.65, 0.65);
 		this.terminalFins.add(topFin);
 
-		// -----------------------------------------------------------
-		// 4. 8 RADIAL ARMS FRAMING THE OBSERVATION WINDOW
-		// Arch forward and outward from around the eye socket
-		// -----------------------------------------------------------
 		const suckerBaseGeo = new THREE.CylinderGeometry(0.08, 0.10, 0.06, 10);
 		suckerBaseGeo.rotateX(Math.PI / 2);
 
@@ -575,7 +506,6 @@ export class ColossalEyeActor implements WindowEventActor {
 
 			const aGroup = new THREE.Group();
 			aGroup.position.set(cosA * armRadius, sinA * armRadius, -0.25);
-			// Direct the arm radially outward and tilted backward away from the glass (into negative Z)
 			const armDir = new THREE.Vector3(cosA, sinA, -0.42).normalize();
 			aGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), armDir);
 
@@ -610,14 +540,10 @@ export class ColossalEyeActor implements WindowEventActor {
 			this.headGroup.add(aGroup);
 		}
 
-		// -----------------------------------------------------------
-		// 5. 2 COLOSSAL FEEDING TENTACLES
-		// -----------------------------------------------------------
 		const tentacleAngles = [-Math.PI * 0.35, -Math.PI * 0.65];
 		tentacleAngles.forEach((tAng, tIdx) => {
 			const tGroup = new THREE.Group();
 			tGroup.position.set(Math.cos(tAng) * (armRadius + 0.25), Math.sin(tAng) * (armRadius + 0.25), -0.35);
-			// Direct feeding tentacles downward, outward, and backward into the abyss
 			const tDir = new THREE.Vector3(Math.cos(tAng), Math.sin(tAng), -0.45).normalize();
 			tGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), tDir);
 
@@ -651,28 +577,19 @@ export class ColossalEyeActor implements WindowEventActor {
 		});
 	}
 
-	/**
-	 * Redraws the dynamic eye canvas with a strictly clamped pupil radius.
-	 * Iris radius is 165px.
-	 * Pupil radius is clamped strictly between 50px and 105px (max 63% of iris).
-	 * Pupil is ALWAYS guaranteed to stay well within the iris!
-	 */
 	private renderEyeCanvas(pupilRadiusPx: number): void {
 		const clampedRadius = Math.max(50, Math.min(105, Math.round(pupilRadiusPx)));
 		if (clampedRadius === this.lastDrawnPupilRadius) return;
 		this.lastDrawnPupilRadius = clampedRadius;
 
 		const ctx = this.eyeCanvasCtx;
-		// 1. Draw pre-rendered static iris and sclera base
 		ctx.drawImage(this.staticIrisCanvas, 0, 0);
 
-		// 2. Draw black pupil in the center
 		ctx.fillStyle = '#000000';
 		ctx.beginPath();
 		ctx.arc(256, 256, clampedRadius, 0, Math.PI * 2);
 		ctx.fill();
 
-		// Soft feathered pupil edge
 		const edgeGrad = ctx.createRadialGradient(256, 256, clampedRadius * 0.88, 256, 256, clampedRadius + 2.5);
 		edgeGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
 		edgeGrad.addColorStop(1, 'rgba(4, 34, 23, 0)');
@@ -690,11 +607,9 @@ export class ColossalEyeActor implements WindowEventActor {
 		this.opening = opts.opening;
 		this.root.visible = true;
 
-		// Approaching position safely outside window in the abyss
 		this.root.position.set(-8.5, 0.1, -5.5);
 		this.squidGroup.rotation.set(0, 0, 0);
 
-		// Eye looks DEAD FORWARD
 		this.eyePivot.rotation.set(0, 0, 0);
 		this.currentPupilDilation = 0.2;
 		this.targetPupilDilation = 0.2;
@@ -718,17 +633,14 @@ export class ColossalEyeActor implements WindowEventActor {
 
 		const pan = ctx.pan(this.opening);
 
-		// Siphon breathing contraction
 		const breath = Math.sin(this.elapsed * 1.6);
 		this.siphonMesh.scale.set(1.0 + breath * 0.15, 1.0 + breath * 0.12, 1.0 - breath * 0.12);
 
-		// Photophore bioluminescent intensity pulsing
 		const bioGlow = 0.8 + Math.sin(this.elapsed * 2.8) * 0.25;
 		for (let i = 0; i < this.orbitalPhotophores.length; i++) {
 			this.orbitalPhotophores[i].scale.setScalar(bioGlow);
 		}
 
-		// Mantle undulating swimming waves
 		const mantleGeo = this.mantleMesh.geometry;
 		const mantlePosAttr = mantleGeo.attributes.position as THREE.BufferAttribute;
 		const numR = this.mantleRingCount;
@@ -753,11 +665,9 @@ export class ColossalEyeActor implements WindowEventActor {
 		mantlePosAttr.needsUpdate = true;
 		mantleGeo.computeVertexNormals();
 
-		// Terminal diamond fins undulating smoothly
 		this.terminalFins.rotation.x = Math.sin(this.elapsed * 1.8) * 0.2;
 		this.terminalFins.rotation.z = Math.cos(this.elapsed * 1.3) * 0.1;
 
-		// 8 Radial Arms undulating organically outward and framing the window
 		for (let a = 0; a < this.arms.length; a++) {
 			const arm = this.arms[a];
 			for (let s = 0; s < arm.segments.length; s++) {
@@ -770,7 +680,6 @@ export class ColossalEyeActor implements WindowEventActor {
 			}
 		}
 
-		// 2 Feeding tentacles undulating
 		for (let f = 0; f < this.feedingTentacles.length; f++) {
 			const tent = this.feedingTentacles[f];
 			for (let s = 0; s < tent.segments.length; s++) {
@@ -782,11 +691,7 @@ export class ColossalEyeActor implements WindowEventActor {
 			tent.club.rotation.z = Math.sin(this.elapsed * 1.6 + f) * 0.2;
 		}
 
-		// -----------------------------------------------------------
-		// 3-STAGE CHOREOGRAPHY: APPROACH -> GLORIOUS STARE -> DEPARTURE
-		// -----------------------------------------------------------
 		if (progress < 0.28) {
-			// PHASE 1: Emergence from abyss directly towards window center
 			const p = progress / 0.28;
 			const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
 
@@ -797,7 +702,6 @@ export class ColossalEyeActor implements WindowEventActor {
 			this.squidGroup.rotation.y = (1 - ease) * -0.08;
 			this.targetPupilDilation = 0.25;
 		} else if (progress <= 0.74) {
-			// PHASE 2: Colossal Eye staring straight into the cabin through the glass!
 			const obsP = (progress - 0.28) / 0.46;
 
 			this.root.position.x = Math.sin(this.elapsed * 0.45) * 0.03;
@@ -808,14 +712,12 @@ export class ColossalEyeActor implements WindowEventActor {
 			this.squidGroup.rotation.x = Math.sin(this.elapsed * 0.6) * 0.01;
 			this.squidGroup.rotation.z = Math.cos(this.elapsed * 0.5) * 0.01;
 
-			// Cephalopod gaze: ALWAYS facing forward, pupil dilating dynamically on the single canvas!
 			if (obsP < 0.2) {
 				this.targetPupilDilation = 0.35;
 			} else if (obsP < 0.65) {
 				const dilatePhase = (obsP - 0.2) / 0.45;
 				const dilationCurve = Math.sin(dilatePhase * Math.PI);
 
-				// Smooth dilation (corresponds to 50px -> 100px, strictly inside iris 165px!)
 				this.targetPupilDilation = 0.35 + dilationCurve * 0.65;
 
 				if (!this.stareAudioTriggered && obsP > 0.35) {
@@ -831,7 +733,6 @@ export class ColossalEyeActor implements WindowEventActor {
 				this.targetPupilDilation = 0.25;
 			}
 		} else {
-			// PHASE 3: Siphon pulse contraction and rapid glide back into abyss
 			const depP = (progress - 0.74) / 0.26;
 			const easeOut = depP * depP;
 
@@ -850,13 +751,11 @@ export class ColossalEyeActor implements WindowEventActor {
 			}
 		}
 
-		// Interpolate dynamic pupil dilation and redraw canvas
 		this.currentPupilDilation = THREE.MathUtils.lerp(
 			this.currentPupilDilation,
 			this.targetPupilDilation,
 			dt * 4.5
 		);
-		// Min: 50px, Max: 105px (iris is 165px -> pupil is ALWAYS within the iris!)
 		const targetPx = THREE.MathUtils.lerp(50, 105, this.currentPupilDilation);
 		this.renderEyeCanvas(targetPx);
 

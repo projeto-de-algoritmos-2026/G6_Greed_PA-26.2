@@ -22,7 +22,6 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 		canvas.height = 512;
 		const ctx = canvas.getContext('2d')!;
 
-		// Base submarine steel-blue
 		ctx.fillStyle = '#263b4d';
 		ctx.fillRect(0, 0, 512, 512);
 
@@ -30,13 +29,12 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 		const d = imgData.data;
 		for (let i = 0; i < d.length; i += 4) {
 			const noise = (Math.random() - 0.5) * 26;
-			d[i] = Math.max(25, Math.min(80, 42 + noise * 0.8)); // R
-			d[i + 1] = Math.max(40, Math.min(115, 68 + noise * 1.0)); // G
-			d[i + 2] = Math.max(60, Math.min(155, 96 + noise * 1.3)); // B (distinctly blue)
+			d[i] = Math.max(25, Math.min(80, 42 + noise * 0.8)); 
+			d[i + 1] = Math.max(40, Math.min(115, 68 + noise * 1.0)); 
+			d[i + 2] = Math.max(60, Math.min(155, 96 + noise * 1.3)); 
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		// Metallic scratches and horizontal grain
 		ctx.strokeStyle = 'rgba(180, 215, 245, 0.06)';
 		ctx.lineWidth = 1;
 		for (let y = 0; y < 512; y += 3) {
@@ -60,7 +58,6 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 			ctx.stroke();
 		}
 
-		// Procedural rust patches and corrosion spots
 		const rustColors = [
 			'rgba(168, 76, 26, 0.44)',
 			'rgba(135, 58, 18, 0.48)',
@@ -83,7 +80,6 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 			ctx.fill();
 		}
 
-		// Vertical rust drips running down metal seams
 		for (let d = 0; d < 20; d++) {
 			const dx = Math.random() * 512;
 			const dy = Math.random() * 180;
@@ -98,7 +94,6 @@ export function createHullMetalTexture(): THREE.CanvasTexture {
 			ctx.fillRect(dx - dW / 2, dy, dW, dLen);
 		}
 
-		// Deep water grime stains
 		ctx.fillStyle = 'rgba(10, 20, 28, 0.35)';
 		for (let r = 0; r < 8; r++) {
 			const rx = Math.random() * 512;
@@ -118,7 +113,6 @@ export function createDarkRibTexture(): THREE.CanvasTexture {
 		canvas.height = 256;
 		const ctx = canvas.getContext('2d')!;
 
-		// Base dark submarine navy steel
 		ctx.fillStyle = '#1c2e3d';
 		ctx.fillRect(0, 0, 256, 256);
 
@@ -126,13 +120,12 @@ export function createDarkRibTexture(): THREE.CanvasTexture {
 		const d = imgData.data;
 		for (let i = 0; i < d.length; i += 4) {
 			const n = (Math.random() - 0.5) * 18;
-			d[i] = Math.max(20, Math.min(65, 32 + n * 0.8)); // R
-			d[i + 1] = Math.max(30, Math.min(85, 52 + n * 1.0)); // G
-			d[i + 2] = Math.max(45, Math.min(120, 78 + n * 1.3)); // B (distinctly blue)
+			d[i] = Math.max(20, Math.min(65, 32 + n * 0.8)); 
+			d[i + 1] = Math.max(30, Math.min(85, 52 + n * 1.0)); 
+			d[i + 2] = Math.max(45, Math.min(120, 78 + n * 1.3)); 
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		// Rust on structural seams
 		ctx.fillStyle = 'rgba(152, 68, 24, 0.38)';
 		ctx.fillRect(0, 0, 256, 6);
 		ctx.fillRect(0, 250, 256, 6);
@@ -362,7 +355,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 		const ctx = canvas.getContext('2d')!;
 		ctx.clearRect(0, 0, 512, 512);
 
-		// 4 deep vertical sickle claw gouges
 		const clawOffsets = [-85, -28, 28, 85];
 		for (let i = 0; i < clawOffsets.length; i++) {
 			const ox = clawOffsets[i];
@@ -380,7 +372,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 				points.push({ x: curX, y: curY });
 			}
 
-			// Pass 1: Broad friction energy halo
 			ctx.beginPath();
 			ctx.moveTo(points[0].x, points[0].y);
 			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
@@ -390,7 +381,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 			ctx.lineJoin = 'round';
 			ctx.stroke();
 
-			// Pass 2: Crushed silica trench
 			ctx.beginPath();
 			ctx.moveTo(points[0].x, points[0].y);
 			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
@@ -398,7 +388,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 			ctx.lineWidth = isCenter ? 9 : 6;
 			ctx.stroke();
 
-			// Pass 3: White-hot gouge core
 			ctx.beginPath();
 			ctx.moveTo(points[0].x, points[0].y);
 			for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
@@ -406,7 +395,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 			ctx.lineWidth = isCenter ? 3.5 : 2.5;
 			ctx.stroke();
 
-			// Lateral micro-splinters along the trench walls
 			ctx.strokeStyle = 'rgba(210, 250, 255, 0.75)';
 			ctx.lineWidth = 1.5;
 			for (let p = 2; p < points.length - 2; p += 2) {
@@ -421,7 +409,6 @@ export function createClawScrapeScratchTexture(): THREE.CanvasTexture {
 				}
 			}
 
-			// Spall release chips at bottom
 			const endPt = points[points.length - 1];
 			for (let c = 0; c < 5; c++) {
 				const cx = endPt.x + (Math.random() - 0.5) * 22;
@@ -448,7 +435,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 		const cx = 256;
 		const cy = 256;
 
-		// 1. Wet mouth rim condensation haze (fleshy lips pressed against glass)
 		const rimGrad = ctx.createRadialGradient(cx, cy, 140, cx, cy, 240);
 		rimGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
 		rimGrad.addColorStop(0.5, 'rgba(60, 220, 200, 0.18)');
@@ -459,7 +445,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 		ctx.arc(cx, cy, 240, 0, Math.PI * 2);
 		ctx.fill();
 
-		// 2. Upper and lower dental arches with conical fang punctures & sliding grind marks
 		const drawJawArch = (arcCy: number, radiusX: number, radiusY: number, startA: number, endA: number, isUpper: boolean) => {
 			const teethCount = 13;
 			for (let i = 0; i < teethCount; i++) {
@@ -473,7 +458,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 				const dragDirY = isUpper ? 1 : -1;
 				const dragDirX = (cx - px) * 0.15;
 
-				// Halo
 				ctx.strokeStyle = isCanine ? 'rgba(0, 255, 190, 0.45)' : 'rgba(120, 240, 220, 0.3)';
 				ctx.lineWidth = isCanine ? 18 : 10;
 				ctx.lineCap = 'round';
@@ -482,7 +466,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
 				ctx.stroke();
 
-				// Tooth scratch groove
 				ctx.strokeStyle = 'rgba(210, 255, 245, 0.85)';
 				ctx.lineWidth = isCanine ? 6 : 4;
 				ctx.beginPath();
@@ -490,7 +473,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
 				ctx.stroke();
 
-				// Sharp enamel contact core
 				ctx.strokeStyle = 'rgba(255, 255, 255, 0.98)';
 				ctx.lineWidth = isCanine ? 2.5 : 1.8;
 				ctx.beginPath();
@@ -498,13 +480,11 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 				ctx.lineTo(px + dragDirX, py + dragDirY * dragLen);
 				ctx.stroke();
 
-				// Puncture crater at initial bite contact
 				ctx.fillStyle = 'rgba(255, 255, 245, 0.98)';
 				ctx.beginPath();
 				ctx.arc(px, py, isCanine ? 3.8 : 2.4, 0, Math.PI * 2);
 				ctx.fill();
 
-				// Micro star-fractures on canines
 				if (isCanine) {
 					ctx.strokeStyle = 'rgba(200, 250, 255, 0.8)';
 					ctx.lineWidth = 1.2;
@@ -523,7 +503,6 @@ export function createMawPressScratchTexture(): THREE.CanvasTexture {
 		drawJawArch(195, 185, 90, Math.PI * 1.1, Math.PI * 1.9, true);
 		drawJawArch(315, 175, 85, Math.PI * 0.1, Math.PI * 0.9, false);
 
-		// Frothy organic saliva/mucus specks between jaws
 		for (let s = 0; s < 45; s++) {
 			const sx = cx + (Math.random() - 0.5) * 320;
 			const sy = cy + (Math.random() - 0.5) * 160;
@@ -546,7 +525,6 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 		const ctx = canvas.getContext('2d')!;
 		ctx.clearRect(0, 0, 512, 512);
 
-		// S-curve trajectory of tentacle crawl across the pane
 		const pathPoints = [
 			{ x: 70, y: 440, r: 34 },
 			{ x: 130, y: 360, r: 31 },
@@ -558,7 +536,6 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 			{ x: 450, y: 65, r: 12 }
 		];
 
-		// 1. Broad translucent slimy mucus trail
 		ctx.beginPath();
 		ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
 		for (let i = 1; i < pathPoints.length; i++) {
@@ -570,17 +547,14 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 		ctx.lineJoin = 'round';
 		ctx.stroke();
 
-		// Mucus sheen core
 		ctx.strokeStyle = 'rgba(120, 255, 230, 0.28)';
 		ctx.lineWidth = 35;
 		ctx.stroke();
 
-		// 2. Suction cup impressions along the tentacle
 		for (let i = 0; i < pathPoints.length; i++) {
 			const pt = pathPoints[i];
 			const r = pt.r;
 
-			// Suction cup glow halo
 			const padGrad = ctx.createRadialGradient(pt.x, pt.y, r * 0.4, pt.x, pt.y, r * 1.35);
 			padGrad.addColorStop(0, 'rgba(0, 255, 200, 0)');
 			padGrad.addColorStop(0.7, 'rgba(40, 235, 190, 0.32)');
@@ -590,21 +564,18 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 			ctx.arc(pt.x, pt.y, r * 1.35, 0, Math.PI * 2);
 			ctx.fill();
 
-			// Outer suction lip (thick compressed ring)
 			ctx.strokeStyle = 'rgba(215, 255, 245, 0.88)';
 			ctx.lineWidth = Math.max(2, r * 0.16);
 			ctx.beginPath();
 			ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
 			ctx.stroke();
 
-			// Inner vacuum seal rim
 			ctx.strokeStyle = 'rgba(150, 240, 220, 0.65)';
 			ctx.lineWidth = 1.5;
 			ctx.beginPath();
 			ctx.arc(pt.x, pt.y, r * 0.72, 0, Math.PI * 2);
 			ctx.stroke();
 
-			// Radial micro-ridges (papillae ridges inside sucker cup)
 			const spokes = 10;
 			ctx.strokeStyle = 'rgba(180, 255, 235, 0.45)';
 			ctx.lineWidth = 1.0;
@@ -616,7 +587,6 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 				ctx.stroke();
 			}
 
-			// Chitinous suction ring hook / barb drag mark
 			if (i % 2 === 0 || i > 3) {
 				const hookAng = -0.45 + (Math.random() - 0.5) * 0.3;
 				const hookLen = r * 1.3;
@@ -640,7 +610,6 @@ export function createTentacleScratchTexture(): THREE.CanvasTexture {
 				ctx.stroke();
 			}
 
-			// Trapped micro-bubbles
 			for (let b = 0; b < 3; b++) {
 				const bx = pt.x + (Math.random() - 0.5) * r * 1.8;
 				const by = pt.y + (Math.random() - 0.5) * r * 1.8;
@@ -666,7 +635,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 		const cx = 256;
 		const cy = 256;
 
-		// 1. Necrotic cold impact smudge / ghostly frost halo
 		const frostGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 180);
 		frostGrad.addColorStop(0, 'rgba(220, 245, 255, 0.55)');
 		frostGrad.addColorStop(0.4, 'rgba(140, 245, 180, 0.25)');
@@ -676,7 +644,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 		ctx.arc(cx, cy, 180, 0, Math.PI * 2);
 		ctx.fill();
 
-		// 2. Central impact shockwaves & micro-cracks
 		ctx.strokeStyle = 'rgba(240, 255, 255, 0.7)';
 		ctx.lineWidth = 1.6;
 		for (const r of [24, 52, 88]) {
@@ -692,7 +659,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 			ctx.stroke();
 		}
 
-		// 3. Frantic, frantic multi-directional clawing
 		const drawClawRake = (startX: number, startY: number, angle: number, clawSpacing: number, count: number) => {
 			for (let c = 0; c < count; c++) {
 				const offset = (c - (count - 1) / 2) * clawSpacing;
@@ -712,7 +678,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 					pts.push({ x, y });
 				}
 
-				// Glow
 				ctx.beginPath();
 				ctx.moveTo(pts[0].x, pts[0].y);
 				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
@@ -720,7 +685,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 				ctx.lineWidth = 14;
 				ctx.stroke();
 
-				// Trench
 				ctx.beginPath();
 				ctx.moveTo(pts[0].x, pts[0].y);
 				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
@@ -728,7 +692,6 @@ export function createLightFailureScratchTexture(): THREE.CanvasTexture {
 				ctx.lineWidth = 4.5;
 				ctx.stroke();
 
-				// Sharp ragged nail core
 				ctx.beginPath();
 				ctx.moveTo(pts[0].x, pts[0].y);
 				for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
@@ -802,7 +765,6 @@ export function createDeadDiverScratchTexture(): THREE.CanvasTexture {
 		const cx = 256;
 		const cy = 256;
 
-		// 1. Rubber suit & condensation smear
 		const suitGrad = ctx.createLinearGradient(120, 120, 390, 390);
 		suitGrad.addColorStop(0, 'rgba(180, 220, 240, 0.0)');
 		suitGrad.addColorStop(0.4, 'rgba(180, 225, 245, 0.32)');
@@ -813,7 +775,6 @@ export function createDeadDiverScratchTexture(): THREE.CanvasTexture {
 		ctx.ellipse(cx, cy, 170, 95, Math.PI / 4, 0, Math.PI * 2);
 		ctx.fill();
 
-		// 2. Heavy bronze helmet visor rim arc
 		ctx.strokeStyle = 'rgba(100, 210, 190, 0.55)';
 		ctx.lineWidth = 26;
 		ctx.beginPath();
@@ -832,7 +793,6 @@ export function createDeadDiverScratchTexture(): THREE.CanvasTexture {
 		ctx.arc(cx - 20, cy, 145, -Math.PI * 0.35, Math.PI * 0.45);
 		ctx.stroke();
 
-		// 3. 3 threaded brass wing-nut / bolt head drag tracks
 		for (const by of [180, 250, 320]) {
 			ctx.beginPath();
 			ctx.moveTo(140, by);
@@ -845,7 +805,6 @@ export function createDeadDiverScratchTexture(): THREE.CanvasTexture {
 			ctx.stroke();
 		}
 
-		// Trapped air-bubble drag trails
 		for (let b = 0; b < 16; b++) {
 			const bx = 160 + Math.random() * 200;
 			const by = 160 + Math.random() * 200;

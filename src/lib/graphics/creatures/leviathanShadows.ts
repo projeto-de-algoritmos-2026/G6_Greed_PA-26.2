@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 import type { WindowEventActor, EventContext, StartOptions } from '../types';
 
-/**
- * Creates high-detail procedural skin for the shadow leviathan:
- * spectral abyssal dragon scales with metallic iridescence and deep indigo-black undertones.
- */
 function createSerpentSkinTexture(tone: 'cyan' | 'amber'): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 512;
@@ -14,7 +10,6 @@ function createSerpentSkinTexture(tone: 'cyan' | 'amber'): THREE.CanvasTexture {
 	ctx.fillStyle = '#04080c';
 	ctx.fillRect(0, 0, 512, 512);
 
-	// Spectral subcutaneous gradient
 	for (let i = 0; i < 100; i++) {
 		const x = Math.random() * 512;
 		const y = Math.random() * 512;
@@ -34,7 +29,6 @@ function createSerpentSkinTexture(tone: 'cyan' | 'amber'): THREE.CanvasTexture {
 		ctx.fill();
 	}
 
-	// Micro-scale diamond skin texture
 	ctx.strokeStyle = tone === 'cyan' ? 'rgba(0, 255, 200, 0.05)' : 'rgba(255, 180, 50, 0.05)';
 	ctx.lineWidth = 1;
 	const step = 16;
@@ -45,7 +39,6 @@ function createSerpentSkinTexture(tone: 'cyan' | 'amber'): THREE.CanvasTexture {
 		}
 	}
 
-	// Bioluminescent photophore pore nodes
 	for (let p = 0; p < 180; p++) {
 		const px = Math.random() * 512;
 		const py = Math.random() * 512;
@@ -156,14 +149,9 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				color: glowColor
 			});
 
-			// -------------------------------------------------------
-			// 1. MASSIVE, IMPOSING APEX PREDATOR SKULL (Dunkleosteus/Dragon)
-			// Proportional, dominant, and terrifying head
-			// -------------------------------------------------------
 			const head = new THREE.Group();
 			group.add(head);
 
-			// Massive upper cranium: length ~6.2m, height ~2.4m, width ~2.2m
 			const skullGeo = new THREE.CylinderGeometry(0.85, 2.3, 6.2, 14, 4);
 			skullGeo.rotateZ(-Math.PI / 2);
 			skullGeo.scale(1.05, 0.75, 0.85);
@@ -174,12 +162,10 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				let y = sPos.getY(i);
 				let z = sPos.getZ(i);
 
-				// Heavy, armored snout & brow ridges
 				if (x > 1.2) {
 					y *= 0.82;
 					z *= 0.78;
 				}
-				// Brow crest above eyes
 				if (x > 0.2 && x < 1.8 && y > 0.4) {
 					y += 0.28;
 				}
@@ -191,7 +177,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 			skullMesh.position.set(2.8, 0.2, 0);
 			head.add(skullMesh);
 
-			// Heavy armored occipital horn crests radiating back from skull
 			for (let c = 0; c < 6; c++) {
 				const cLen = 2.2 + Math.sin((c / 5) * Math.PI) * 2.4;
 				const horn = new THREE.Mesh(new THREE.ConeGeometry(0.08, cLen, 5), skinMat);
@@ -200,13 +185,11 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				horn.rotation.x = (c % 2 === 0 ? 1 : -1) * 0.15;
 				head.add(horn);
 
-				// Glowing photophore on horn tip
 				const drop = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 8), photoMat);
 				drop.position.set(0, cLen * 0.5, 0);
 				horn.add(drop);
 			}
 
-			// Massive predatory eyes in heavy bony orbits
 			const eyes: THREE.Mesh[] = [];
 			for (const zSide of [0.95, -0.95]) {
 				const eyeSocket = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.14, 10, 20), skinMat);
@@ -224,7 +207,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 			eyeLight.position.set(4.2, 0.6, 0);
 			head.add(eyeLight);
 
-			// Gaping, massive predatory lower jaw
 			const lowerJaw = new THREE.Group();
 			lowerJaw.position.set(1.2, -0.55, 0);
 			head.add(lowerJaw);
@@ -233,7 +215,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 			jawStrut.position.set(1.8, -0.15, 0);
 			lowerJaw.add(jawStrut);
 
-			// Giant interlocking fangs & sabre teeth
 			const fangData = [
 				{ x: 3.8, len: 0.95, rad: 0.08 }, // Giant anterior sabre fang
 				{ x: 3.2, len: 0.75, rad: 0.065 },
@@ -245,14 +226,12 @@ export class LeviathanShadowsActor implements WindowEventActor {
 
 			for (const fd of fangData) {
 				for (const side of [0.55, -0.55]) {
-					// Lower fang
 					const lFang = new THREE.Mesh(new THREE.ConeGeometry(fd.rad, fd.len, 5), toothMat);
 					lFang.position.set(fd.x, 0.15 + fd.len * 0.45, side);
 					lFang.rotation.z = 0.22;
 					lFang.rotation.x = side > 0 ? 0.15 : -0.15;
 					lowerJaw.add(lFang);
 
-					// Upper fang
 					const uFang = new THREE.Mesh(new THREE.ConeGeometry(fd.rad * 0.9, fd.len * 0.9, 5), toothMat);
 					uFang.position.set(fd.x + 0.35, -0.45 - fd.len * 0.4, side * 0.95);
 					uFang.rotation.z = -0.25;
@@ -261,7 +240,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				}
 			}
 
-			// Long chin barbel
 			const chinBarbel = new THREE.Group();
 			chinBarbel.position.set(4.2, -0.7, 0);
 			lowerJaw.add(chinBarbel);
@@ -274,7 +252,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 			bTip.position.set(0, -2.2, 0);
 			chinBarbel.add(bTip);
 
-			// Trailing pelvic streamers
 			const pelvicStreamers: THREE.Mesh[] = [];
 			for (const side of [1, -1]) {
 				const streamerGeo = new THREE.CylinderGeometry(0.035, 0.015, 6.2, 6);
@@ -292,10 +269,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				streamer.add(paddle);
 			}
 
-			// -------------------------------------------------------
-			// 2. Muscular Tapering Serpentine Body (18 segments)
-			// Smoothly connects from massive head (s=0) and tapers gracefully to tail
-			// -------------------------------------------------------
 			const numSegs = 18;
 			const totalLength = 24.0;
 			const segSpacing = totalLength / numSegs;
@@ -308,9 +281,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				sGroup.position.set(-s * segSpacing, 0, 0);
 				group.add(sGroup);
 
-				// Proportional scaling: connects seamlessly to the massive head
-				// Near head (t=0): height ~2.8m, width ~2.0m
-				// Near tail (t=1): height ~0.4m, width ~0.2m
 				const sScale = Math.pow(1.0 - t * 0.85, 0.85);
 				const height = 2.8 * sScale;
 				const width = 2.0 * sScale;
@@ -321,7 +291,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				const bodyMesh = new THREE.Mesh(bGeo, skinMat);
 				sGroup.add(bodyMesh);
 
-				// Dorsal fin ray
 				const rayHeight = 1.3 * sScale + 0.3;
 				const rayGeo = new THREE.ConeGeometry(0.035, rayHeight, 4);
 				const dorsalRay = new THREE.Mesh(rayGeo, finMat);
@@ -334,7 +303,6 @@ export class LeviathanShadowsActor implements WindowEventActor {
 				finSlab.rotation.y = Math.PI / 2;
 				sGroup.add(finSlab);
 
-				// Ventral photophore chain
 				let photophore: THREE.Mesh | undefined;
 				if (s % 2 === 0) {
 					for (const side of [0.45 * sScale, -0.45 * sScale]) {
@@ -385,10 +353,8 @@ export class LeviathanShadowsActor implements WindowEventActor {
 			};
 		};
 
-		// Leviathan 1: Glides left-to-right at middle distance (-9.5m), piercing ghostly cyan glow
 		this.leviathan1 = createLeviathan('cyan', 56.0, 1, 1.5, -9.5);
 
-		// Leviathan 2: Glides right-to-left deeper in the gloom (-14.0m), spectral amber glow
 		this.leviathan2 = createLeviathan('amber', 56.0, -1, -2.5, -14.0);
 
 		this.root.add(this.leviathan1.root, this.leviathan2.root);

@@ -64,7 +64,6 @@ export class CabinEnclosure {
 		crossBeam.position.set(0, 2.2, -2.34);
 		this.group.add(crossBeam);
 
-		// Industrial overhead ceiling lamp fixture at top of cabin
 		const lampGroup = new THREE.Group();
 		lampGroup.position.set(0, 2.30, 0.65);
 

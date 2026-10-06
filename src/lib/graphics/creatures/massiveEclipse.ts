@@ -1,18 +1,12 @@
 import * as THREE from 'three';
 import type { WindowEventActor, EventContext, StartOptions } from '../types';
 
-/**
- * Creates authentic scarred, mottled Whale Shark skin texture (Rhincodon typus).
- * Deep oceanic slate-navy base, irregular rows of creamy-white circular spots,
- * transverse checker lines, and ancient abyssal scarring.
- */
 function createWhaleSharkSkinTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 1024;
 	canvas.height = 512;
 	const ctx = canvas.getContext('2d')!;
 
-	// Deep oceanic slate/charcoal/navy background
 	const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
 	bgGrad.addColorStop(0, '#0a171d');
 	bgGrad.addColorStop(0.35, '#12242c');
@@ -21,7 +15,6 @@ function createWhaleSharkSkinTexture(): THREE.CanvasTexture {
 	ctx.fillStyle = bgGrad;
 	ctx.fillRect(0, 0, 1024, 512);
 
-	// Pale transverse vertical striping bands (characteristic of whale sharks)
 	ctx.strokeStyle = 'rgba(215, 235, 230, 0.12)';
 	ctx.lineWidth = 14;
 	for (let x = 60; x < 1024; x += 55) {
@@ -31,7 +24,6 @@ function createWhaleSharkSkinTexture(): THREE.CanvasTexture {
 		ctx.stroke();
 	}
 
-	// Longitudinal pale lines intersecting the vertical bands (checkerboard grid)
 	ctx.lineWidth = 8;
 	for (let y = 100; y <= 420; y += 75) {
 		ctx.beginPath();
@@ -40,7 +32,6 @@ function createWhaleSharkSkinTexture(): THREE.CanvasTexture {
 		ctx.stroke();
 	}
 
-	// Hundreds of distinct creamy-white spots across flanks and dorsal surface
 	for (let i = 0; i < 750; i++) {
 		const sx = Math.random() * 1024;
 		const sy = 60 + Math.random() * 380;
@@ -57,7 +48,6 @@ function createWhaleSharkSkinTexture(): THREE.CanvasTexture {
 		ctx.fill();
 	}
 
-	// Ancient deep-sea battle scars and scratches
 	ctx.strokeStyle = 'rgba(180, 210, 205, 0.35)';
 	for (let s = 0; s < 24; s++) {
 		const scx = 80 + Math.random() * 850;
@@ -92,34 +82,27 @@ export class MassiveEclipseActor implements WindowEventActor {
 	public readonly supportsJumpscare = false;
 	public readonly root: THREE.Group;
 
-	// Hierarchy
 	private behemothGroup: THREE.Group;
 	private torsoMesh: THREE.Mesh;
 
-	// Head & Cavernous Shovel Mouth
 	private headGroup: THREE.Group;
 	private lowerJaw: THREE.Group;
 	private sensoryPores: THREE.Mesh[] = [];
 
-	// Eye
 	private eyePivot: THREE.Group;
 	private eyeBall: THREE.Mesh;
 	private eyePointLight: THREE.PointLight;
 
-	// Respiratory Gill Arches (5 on flank)
 	private gillArches: GillArch[] = [];
 
-	// Appendages
 	private pectoralFin: THREE.Group;
 	private dorsalFin: THREE.Mesh;
 	private secondDorsalFin: THREE.Mesh;
 	private caudalFin: THREE.Group;
 
-	// Clustered Parasites & Marine Snow
 	private barnacleColonies: THREE.Group;
 	private marineSnow: THREE.Points;
 
-	// State
 	private elapsed: number = 0;
 	private duration: number = 16.0;
 
@@ -130,7 +113,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		this.behemothGroup = new THREE.Group();
 		this.root.add(this.behemothGroup);
 
-		// Shared Procedural Materials
 		const skinTex = createWhaleSharkSkinTexture();
 
 		const skinMat = new THREE.MeshStandardMaterial({
@@ -169,11 +151,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 			emissiveIntensity: 0.35
 		});
 
-		// -----------------------------------------------------------
-		// 1. SCULPTED CONTINUOUS SHARK TORSO (CLOSED WATERTIGHT MANIFOLD)
-		// Starts from the front shovel snout (X = +13.5) and tapers to tail tip (X = -15.5).
-		// Centerline: Y = 0, Z = 0.
-		// -----------------------------------------------------------
 		const numR = 40;
 		const numS = 32;
 		const vertices: number[] = [];
@@ -186,7 +163,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 
 		const getBodyProfile = (x: number): { radZ: number; radY: number; centerY: number } => {
 			if (x >= 11.5) {
-				// Broad shovel rostrum front
 				const t = (13.5 - x) / 2.0;
 				return {
 					radZ: THREE.MathUtils.lerp(2.3, 2.7, t),
@@ -194,7 +170,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					centerY: THREE.MathUtils.lerp(0.1, 0.0, t)
 				};
 			} else if (x >= 6.0) {
-				// Head into gills and pectoral girdle
 				const t = (11.5 - x) / 5.5;
 				return {
 					radZ: THREE.MathUtils.lerp(2.7, 3.0, t),
@@ -202,7 +177,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					centerY: 0.0
 				};
 			} else if (x >= 0.0) {
-				// Mid-torso (maximum bulk)
 				const t = (6.0 - x) / 6.0;
 				return {
 					radZ: THREE.MathUtils.lerp(3.0, 2.8, t),
@@ -210,7 +184,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					centerY: 0.0
 				};
 			} else if (x >= -8.0) {
-				// Trunk tapering to caudal region
 				const t = (0.0 - x) / 8.0;
 				return {
 					radZ: THREE.MathUtils.lerp(2.8, 1.8, t),
@@ -218,7 +191,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					centerY: THREE.MathUtils.lerp(0.0, 0.1, t)
 				};
 			} else if (x >= -13.0) {
-				// Posterior trunk
 				const t = (-8.0 - x) / 5.0;
 				return {
 					radZ: THREE.MathUtils.lerp(1.8, 0.8, t),
@@ -226,7 +198,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					centerY: THREE.MathUtils.lerp(0.1, 0.2, t)
 				};
 			} else {
-				// Caudal peduncle
 				const t = Math.min(1.0, (-13.0 - x) / 2.5);
 				return {
 					radZ: THREE.MathUtils.lerp(0.8, 0.15, t),
@@ -243,18 +214,16 @@ export class MassiveEclipseActor implements WindowEventActor {
 
 			for (let s = 0; s <= numS; s++) {
 				const theta = (s / numS) * Math.PI * 2;
-				const cosT = Math.cos(theta); // Z axis
-				const sinT = Math.sin(theta); // Y axis
+				const cosT = Math.cos(theta); 
+				const sinT = Math.sin(theta); 
 
 				let y = profile.centerY + sinT * profile.radY;
 				let z = cosT * profile.radZ;
 
-				// Flatten ventral belly for true whale shark cross-section
 				if (sinT < 0) {
 					y *= 0.85;
 				}
 
-				// 3 Longitudinal Flank Keels on starboard flank (+Z)
 				if (x > -11.0 && x < 10.5 && cosT > 0.1) {
 					const distR1 = Math.abs(theta - 0.45);
 					if (distR1 < 0.2) {
@@ -277,7 +246,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					}
 				}
 
-				// Dorsal armor keel
 				if (sinT > 0.72) {
 					const dorsalP = (sinT - 0.72) / 0.28;
 					let keelSpine = Math.pow(dorsalP, 2.0) * 0.65;
@@ -287,7 +255,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 					y += keelSpine;
 				}
 
-				// Ventral throat pleats
 				if (sinT < -0.35 && x > 2.0 && x < 9.5) {
 					const pleatWave = Math.sin(theta * 28.0) * 0.16;
 					y += pleatWave * sinT;
@@ -320,16 +287,10 @@ export class MassiveEclipseActor implements WindowEventActor {
 		this.torsoMesh = new THREE.Mesh(torsoGeo, skinMat);
 		this.behemothGroup.add(this.torsoMesh);
 
-		// -----------------------------------------------------------
-		// 2. TERMINAL SHOVEL MOUTH & ARTICULATED LOWER JAW
-		// Fused directly into the front rostrum (X = +11.5 to +13.5).
-		// Zero detachment, zero gap!
-		// -----------------------------------------------------------
 		this.headGroup = new THREE.Group();
 		this.headGroup.position.set(11.5, 0, 0);
 		this.behemothGroup.add(this.headGroup);
 
-		// Upper Lip Contour: Fleshy arch curving around the front mouth rim
 		const uLipShape = new THREE.TorusGeometry(2.35, 0.22, 12, 32, Math.PI * 0.9);
 		uLipShape.rotateX(Math.PI / 2);
 		uLipShape.rotateZ(-Math.PI * 0.45);
@@ -338,7 +299,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		uLipMesh.position.set(1.5, 0.25, 0);
 		this.headGroup.add(uLipMesh);
 
-		// Gaping Oral Pharynx (Throat Cavity): Recessed inside the mouth
 		const throatGeo = new THREE.CylinderGeometry(1.2, 1.9, 2.6, 20, 2, true);
 		throatGeo.rotateZ(Math.PI / 2);
 		throatGeo.scale(0.7, 0.45, 1.15);
@@ -346,7 +306,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		throatMesh.position.set(0.6, 0.05, 0.0);
 		this.headGroup.add(throatMesh);
 
-		// Articulated Lower Jaw (Mandible): Fitted flush along the bottom of the shovel head
 		this.lowerJaw = new THREE.Group();
 		this.lowerJaw.position.set(0.2, -0.2, 0);
 		this.headGroup.add(this.lowerJaw);
@@ -359,7 +318,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		lJawMesh.position.set(1.3, -0.12, 0);
 		this.lowerJaw.add(lJawMesh);
 
-		// Lower jaw floor (chin plate)
 		const lChinGeo = new THREE.SphereGeometry(2.3, 24, 12, 0, Math.PI, 0, Math.PI * 0.4);
 		lChinGeo.rotateZ(-Math.PI / 2);
 		lChinGeo.scale(1.15, -0.3, 0.95);
@@ -367,7 +325,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		lChin.position.set(0.3, -0.25, 0);
 		this.lowerJaw.add(lChin);
 
-		// Nasal Barbels on Upper Lip at snout rim
 		const barbelGeo = new THREE.ConeGeometry(0.07, 0.55, 8);
 		barbelGeo.rotateZ(-Math.PI / 2.6);
 
@@ -379,7 +336,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		leftBarbel.position.set(1.9, 0.35, -1.2);
 		this.headGroup.add(leftBarbel);
 
-		// Bioluminescent Sensory Pores (Ampullae of Lorenzini) across the shovel rim
 		const poreGeo = new THREE.SphereGeometry(0.045, 6, 6);
 		const poreMat = new THREE.MeshStandardMaterial({
 			color: 0x24ffd8,
@@ -398,7 +354,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 			this.headGroup.add(pMesh);
 		}
 
-		// Ancient Blind Lateral Shark Eye (Right flank +Z)
 		this.eyePivot = new THREE.Group();
 		this.eyePivot.position.set(-0.2, 0.4, 2.55);
 		this.headGroup.add(this.eyePivot);
@@ -416,9 +371,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		this.eyePointLight.position.set(0, 0, 0.35);
 		this.eyePivot.add(this.eyePointLight);
 
-		// -----------------------------------------------------------
-		// 3. 5 COLOSSAL RESPIRATORY GILL SLITS ON THE STARBOARD FLANK (+Z)
-		// -----------------------------------------------------------
 		const gillXPositions = [9.2, 8.1, 7.0, 5.9, 4.8];
 		for (let g = 0; g < gillXPositions.length; g++) {
 			const gx = gillXPositions[g];
@@ -442,13 +394,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 			this.gillArches.push({ flapMesh, filamentsMesh, baseRotY });
 		}
 
-		// -----------------------------------------------------------
-		// 4. GARGANTUAN FALCATE PECTORAL FIN (Asa do Tubarão Baleia)
-		// Attached flush to the flank at X = 3.6, Y = -0.9, Z = 2.4.
-		// Sweeps strictly backward along -X and slightly downward along -Y.
-		// Maximum local Z extension <= 2.2m.
-		// At behemothGroup Z = -8.5, max world Z is <= -6.3m (6.3m from glass)!
-		// -----------------------------------------------------------
 		this.pectoralFin = new THREE.Group();
 		this.pectoralFin.position.set(3.6, -0.9, 2.4);
 		this.behemothGroup.add(this.pectoralFin);
@@ -458,7 +403,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		const finRoot = new THREE.Mesh(finRootGeo, skinMat);
 		this.pectoralFin.add(finRoot);
 
-		// Sickle-shaped fin blade sweeping backwards along -X and down -Y
 		const finBladeShape = new THREE.Shape();
 		finBladeShape.moveTo(0, 0);
 		finBladeShape.bezierCurveTo(-2.0, -0.8, -4.2, -1.8, -5.6, -3.2);
@@ -472,9 +416,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		finBlade.rotation.x = -0.32;
 		this.pectoralFin.add(finBlade);
 
-		// -----------------------------------------------------------
-		// 5. DORSAL FINS (1ª e 2ª Nadadeiras Dorsais no Dorso)
-		// -----------------------------------------------------------
 		const dFinShape = new THREE.Shape();
 		dFinShape.moveTo(0, 0);
 		dFinShape.bezierCurveTo(1.2, 2.2, 1.8, 3.5, 2.2, 4.0);
@@ -496,9 +437,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		this.secondDorsalFin.scale.setScalar(0.48);
 		this.behemothGroup.add(this.secondDorsalFin);
 
-		// -----------------------------------------------------------
-		// 6. COLOSSAL CAUDAL FIN (Cauda Heterocerca de 10 Metros)
-		// -----------------------------------------------------------
 		this.caudalFin = new THREE.Group();
 		this.caudalFin.position.set(-15.4, 0.2, 0.0);
 		this.behemothGroup.add(this.caudalFin);
@@ -516,9 +454,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		caudalMesh.rotation.y = Math.PI / 2;
 		this.caudalFin.add(caudalMesh);
 
-		// -----------------------------------------------------------
-		// 7. PARASITIC BARNACLE COLONIES ON ANCIENT FLANK
-		// -----------------------------------------------------------
 		this.barnacleColonies = new THREE.Group();
 		this.behemothGroup.add(this.barnacleColonies);
 
@@ -541,9 +476,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 			this.barnacleColonies.add(bMesh);
 		}
 
-		// -----------------------------------------------------------
-		// 8. MARINE SNOW PARTICULATE DRIFT IN MASSIVE WAKE
-		// -----------------------------------------------------------
 		const snowCount = 160;
 		const snowGeo = new THREE.BufferGeometry();
 		const snowPos = new Float32Array(snowCount * 3);
@@ -571,10 +503,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 		this.duration = 16.0;
 		this.root.visible = true;
 
-		// Distance tuned securely away from the window glass (Z=0):
-		// Behemoth centerline is at Z = -8.5.
-		// Maximum flank / fin radius is <= 2.8m.
-		// Closest point is at Z <= -5.7m (over 5.5 meters clearance, ZERO CLIPPING!)
 		this.behemothGroup.position.set(-22.0, 0.0, -8.5);
 		this.behemothGroup.rotation.set(0, 0, 0);
 
@@ -591,38 +519,26 @@ export class MassiveEclipseActor implements WindowEventActor {
 			return false;
 		}
 
-		// -----------------------------------------------------------
-		// CINEMATIC TRAJECTORY (ZERO CLIPPING, 6 METERS AWAY):
-		// 1. Approach (0.0 to 0.35): Approaches from deep water at Z = -11.5 up to Z = -8.5.
-		// 2. Eclipse Glide (0.35 to 0.75): Glides flank past the window at Z = -8.5, eclipsing headlights without touching glass!
-		// 3. Tail Dive (0.75 to 1.0): Sweeps giant tail through beam as it dives down into deep water.
-		// -----------------------------------------------------------
 		if (progress < 0.35) {
-			// Phase 1: Approaching
 			const p = progress / 0.35;
 			const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
 
 			this.behemothGroup.position.x = -22.0 + ease * 14.0;
 			this.behemothGroup.position.y = Math.sin(this.elapsed * 0.4) * 0.22;
-			// Stays securely between Z = -11.5 and Z = -8.5 (Zero clipping!)
 			this.behemothGroup.position.z = -11.5 + ease * 3.0;
 
-			// Slight natural banking angle
 			this.behemothGroup.rotation.y = -0.10 + ease * 0.10;
 			this.behemothGroup.rotation.z = Math.sin(this.elapsed * 0.5) * 0.015;
 		} else if (progress <= 0.75) {
-			// Phase 2: Relentless glide across the porthole, eclipsing all light
 			const glideP = (progress - 0.35) / 0.4;
 
 			this.behemothGroup.position.x = -8.0 + glideP * 16.0;
 			this.behemothGroup.position.y = Math.sin(this.elapsed * 0.35) * 0.22;
-			// Centerline at Z = -8.5m -> closest skin surface at Z <= -5.7m (over 5.5m outside glass at Z=0)
 			this.behemothGroup.position.z = -8.5 + Math.sin(this.elapsed * 0.35) * 0.15;
 
 			this.behemothGroup.rotation.y = Math.sin(this.elapsed * 0.6) * 0.015;
 			this.behemothGroup.rotation.z = Math.sin(this.elapsed * 0.4) * 0.015;
 		} else {
-			// Phase 3: Banking away and diving into the abyssal trench
 			const diveP = (progress - 0.75) / 0.25;
 			const easeOut = diveP * diveP;
 
@@ -634,7 +550,6 @@ export class MassiveEclipseActor implements WindowEventActor {
 			this.behemothGroup.rotation.x = easeOut * -0.12;
 		}
 
-		// Rhythmic breathing of the 5 colossal gill arches (flaring opercula)
 		const breathCycle = Math.sin(this.elapsed * 1.4);
 		const gillFlare = Math.max(0, breathCycle) * 0.35;
 		for (let i = 0; i < this.gillArches.length; i++) {
@@ -643,39 +558,28 @@ export class MassiveEclipseActor implements WindowEventActor {
 			g.filamentsMesh.scale.z = 1.0 + gillFlare * 0.6;
 		}
 
-		// Rhythmic filtering pulsation of the lower jaw
 		const mouthGape = Math.sin(this.elapsed * 1.3) * 0.18;
 		this.lowerJaw.rotation.z = -Math.max(0, mouthGape * 0.32);
 
-		// Falcate pectoral fin undulating hydrodynamically
 		this.pectoralFin.rotation.z = Math.sin(this.elapsed * 1.0) * 0.08;
 		this.pectoralFin.rotation.y = Math.cos(this.elapsed * 0.8) * 0.06;
 
-		// Caudal tail swaying rhythmically
 		this.caudalFin.rotation.y = Math.PI / 2 + Math.sin(this.elapsed * 1.1) * 0.25;
 
-		// Blind ancient eye micro-adjustments
 		this.eyeBall.rotation.y = Math.sin(this.elapsed * 0.6) * 0.08;
 		this.eyeBall.rotation.x = Math.cos(this.elapsed * 0.45) * 0.05;
 
-		// Sensory pores (ampullae of Lorenzini) bioluminescent shimmering
 		const poreGlow = 1.2 + Math.sin(this.elapsed * 2.8) * 0.45;
 		for (let p = 0; p < this.sensoryPores.length; p++) {
 			(this.sensoryPores[p].material as THREE.MeshStandardMaterial).emissiveIntensity = poreGlow;
 		}
 
-		// -----------------------------------------------------------
-		// ECLIPSE LIGHTING CALCULATION
-		// The colossal whale shark body physically blocks exterior submarine spotlights!
-		// -----------------------------------------------------------
 		if (progress > 0.15 && progress < 0.85) {
 			const eclipsePhase = (progress - 0.15) / 0.7;
 			const eclipseCurve = Math.sin(eclipsePhase * Math.PI);
-			// Near total blackout when the massive scarred flank is right in front of the lamps
 			const lightLevel = Math.max(0.03, 1.0 - eclipseCurve * 0.97);
 			ctx.lights.setLevel('hatch', lightLevel);
 
-			// Low-frequency underwater displacement shockwave against cabin hull
 			if (Math.random() < 0.25) {
 				ctx.shake(0.075 * eclipseCurve);
 			}

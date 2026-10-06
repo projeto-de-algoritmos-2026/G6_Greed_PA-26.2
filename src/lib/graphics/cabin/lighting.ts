@@ -15,7 +15,7 @@ export class CabinLightingManager {
 	public isInspectionMode: boolean = false;
 	public isAlarmActive: boolean = false;
 	public blackoutTimer: number = 0;
-	public luminosityMultiplier: number = 1.0;
+	public luminosityMultiplier: number = 0.70;
 
 	private cachedScene: THREE.Scene | null = null;
 	private cachedPhase: ScenePhase = 1;

@@ -1,4 +1,5 @@
 import { AbyssalDrone } from './drone';
+import { BackgroundMusic } from './music';
 import { AlarmSystem } from './alarm';
 import { UISoundSynthesizer } from './uiSounds';
 import { HullSoundSynthesizer } from './hullSounds';
@@ -11,6 +12,7 @@ export class ProceduralAudioEngine {
 	private isMuted: boolean = false;
 
 	private drone = new AbyssalDrone();
+	private music = new BackgroundMusic();
 	private alarm = new AlarmSystem();
 	private uiSounds = new UISoundSynthesizer();
 	private hullSounds = new HullSoundSynthesizer();
@@ -36,6 +38,7 @@ export class ProceduralAudioEngine {
 		this.masterGain.connect(this.ctx.destination);
 
 		this.drone.init(this.ctx, this.masterGain);
+		await this.music.init(this.ctx, this.masterGain);
 		this.isInitialized = true;
 	}
 
@@ -89,6 +92,7 @@ export class ProceduralAudioEngine {
 
 	public playCatastrophicBreach(): void {
 		this.stopProximityAlarm();
+		this.music.fadeOut(2.0);
 		this.hullSounds.playCatastrophicBreach(this.ctx, this.masterGain);
 	}
 
@@ -149,9 +153,18 @@ export class ProceduralAudioEngine {
 		this.hullSounds.playHullKnock(this.ctx, this.masterGain, this.isMuted, pan);
 	}
 
+	public fadeInMusic(duration: number = 3.0): void {
+		this.music.fadeIn(duration);
+	}
+
+	public fadeOutMusic(duration: number = 2.0): void {
+		this.music.fadeOut(duration);
+	}
+
 	public dispose(): void {
 		this.stopProximityAlarm();
 		this.drone.stop();
+		this.music.stop();
 		if (this.ctx) {
 			this.ctx.close();
 			this.ctx = null;

@@ -100,8 +100,6 @@ export class EventDirector {
 		if (action === 'LEVEL_LOAD') {
 			this.badMergesInLevel = 0;
 		} else if (action === 'BAD_MERGE') {
-			// A criatura escala a cada erro guloso: primeiro só bate no casco,
-			// depois aparece na janela e, a partir do terceiro erro, ataca.
 			this.badMergesInLevel++;
 			if (this.activeActor || this.badMergesInLevel === 1) {
 				this.audio?.playHullKnock(this.calculatePan('hatch'));

@@ -8,7 +8,7 @@ export class AbyssalDrone {
 
 	public init(ctx: AudioContext, masterGain: GainNode): void {
 		this.droneGain = ctx.createGain();
-		this.droneGain.gain.setValueAtTime(0.35, ctx.currentTime);
+		this.droneGain.gain.setValueAtTime(0.022, ctx.currentTime);
 
 		this.droneFilter = ctx.createBiquadFilter();
 		this.droneFilter.type = 'lowpass';
@@ -49,7 +49,7 @@ export class AbyssalDrone {
 		noiseFilter.frequency.setValueAtTime(160, ctx.currentTime);
 
 		this.noiseGain = ctx.createGain();
-		this.noiseGain.gain.setValueAtTime(0.12, ctx.currentTime);
+		this.noiseGain.gain.setValueAtTime(0.006, ctx.currentTime);
 
 		this.noiseNode.connect(noiseFilter);
 		noiseFilter.connect(this.noiseGain);
@@ -67,7 +67,7 @@ export class AbyssalDrone {
 		if (!this.droneFilter || !this.droneGain) return;
 		const normalized = Math.max(0, Math.min(100, proximity)) / 100;
 		const cutoff = 110 + normalized * 380;
-		const gain = 0.35 + normalized * 0.35;
+		const gain = 0.022 + normalized * 0.035;
 
 		this.droneFilter.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.4);
 		this.droneGain.gain.setTargetAtTime(gain, ctx.currentTime, 0.4);

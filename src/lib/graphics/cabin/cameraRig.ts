@@ -175,7 +175,7 @@ export class CabinCameraRig {
 	}
 
 	public focusPoster(): void {
-		this.targetCamPos.set(-4.30, 1.05, -0.90);
+		this.targetCamPos.set(-3.85, 1.05, -0.90);
 		this.targetYaw = 0.0;
 		this.targetPitch = 0.0;
 		this.targetFov = 52;

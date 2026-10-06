@@ -177,7 +177,6 @@ export class AuxiliaryScreenCanvas {
 		this.renderHeader(ctx, state);
 		this.renderTelemetryBar(ctx, state);
 
-		// Central interactive panel (Logs vs Min-Heap vs Relatório)
 		this.renderCentralTabs(ctx, state);
 
 		this.renderSectorSelector(ctx, state);
@@ -254,7 +253,6 @@ export class AuxiliaryScreenCanvas {
 		const tw = this.width - 40;
 		const tabH = 34;
 
-		// 3 Tab Buttons
 		const tabs: Array<{ id: 'logs' | 'minheap' | 'report'; label: string; shortcut: string }> = [
 			{ id: 'logs', label: '1. REGISTROS HIDROFÔNICOS', shortcut: '[1]' },
 			{ id: 'minheap', label: '2. PROTOCOLO TARTARUS / MIN-HEAP', shortcut: '[T]' },
@@ -304,7 +302,6 @@ export class AuxiliaryScreenCanvas {
 			});
 		});
 
-		// Content Panel below tabs
 		const py = ty + tabH + 6;
 		const ph = 260;
 
@@ -367,7 +364,6 @@ export class AuxiliaryScreenCanvas {
 
 		const items = state.priorityQueue?.items || [];
 
-		// Visual Min-Heap Priority Queue items
 		const nodeAreaY = py + 42;
 		const nodeW = 108;
 		const nodeH = 50;
@@ -379,7 +375,6 @@ export class AuxiliaryScreenCanvas {
 			const nx = px + 14 + idx * (nodeW + nodeGap);
 
 			if (item.isOptimalNextMin) {
-				// Optimal next min glowing frame
 				const pulse = Math.sin(this.blinkTimer * 1.5);
 				ctx.fillStyle = pulse > 0 ? 'rgba(255, 158, 36, 0.25)' : 'rgba(255, 158, 36, 0.15)';
 				ctx.fillRect(nx, nodeAreaY, nodeW, nodeH);
@@ -399,7 +394,6 @@ export class AuxiliaryScreenCanvas {
 				ctx.fillStyle = '#ffffff';
 				ctx.fillText(`peso: ${item.weight}`, nx + nodeW / 2, nodeAreaY + 44);
 			} else {
-				// Regular node
 				ctx.fillStyle = 'rgba(20, 10, 0, 0.6)';
 				ctx.fillRect(nx, nodeAreaY, nodeW, nodeH);
 				ctx.strokeStyle = 'rgba(255, 158, 36, 0.35)';
@@ -424,7 +418,6 @@ export class AuxiliaryScreenCanvas {
 			ctx.fillText(`+${items.length - maxDisplay} nós`, rx, nodeAreaY + 30);
 		}
 
-		// Theoretical Card: Huffman Greedy Choice Law
 		const cardY = py + 104;
 		const cardW = pw - 28;
 		const cardH = 92;
@@ -467,7 +460,6 @@ export class AuxiliaryScreenCanvas {
 			);
 		}
 
-		// Action button: Execute Recommended Greedy Merge
 		const btnY = py + 208;
 		const canMerge = advice !== null;
 
@@ -528,7 +520,6 @@ export class AuxiliaryScreenCanvas {
 			ctx.fillText(`REDUNDÂNCIA ESTIMADA: ${rep.redundancyBits} bits`, px + 14, py + 148);
 		}
 
-		// Action Buttons: Copy Markdown & Copy JSON
 		const btnY = py + 180;
 		const halfW = (pw - 38) / 2;
 
@@ -776,7 +767,6 @@ export class AuxiliaryScreenCanvas {
 		const isAuxFocused = state.focusedScreen === 'aux';
 		const isMainFocused = state.focusedScreen === 'main';
 
-		// Button 1: Focar Console B
 		this.renderTeletypeCommand(
 			ctx,
 			20,
@@ -789,7 +779,6 @@ export class AuxiliaryScreenCanvas {
 			() => this.onAction?.({ type: 'FOCUS_AUX' })
 		);
 
-		// Button 2: Focar Console A
 		this.renderTeletypeCommand(
 			ctx,
 			20 + (w + gap),
@@ -802,7 +791,6 @@ export class AuxiliaryScreenCanvas {
 			() => this.onAction?.({ type: 'TOGGLE_FOCUS' })
 		);
 
-		// Button 3: Protocolo Tartarus / Min-Heap (T)
 		const isMinHeapActive = this.activeTab === 'minheap';
 		this.renderTeletypeCommand(
 			ctx,
@@ -819,7 +807,6 @@ export class AuxiliaryScreenCanvas {
 			}
 		);
 
-		// Button 4: Relatório / Exportar (E)
 		const isReportActive = this.activeTab === 'report';
 		this.renderTeletypeCommand(
 			ctx,
@@ -836,7 +823,6 @@ export class AuxiliaryScreenCanvas {
 			}
 		);
 
-		// Button 5: Reboot
 		this.renderTeletypeCommand(
 			ctx,
 			20 + (w + gap) * 4,
@@ -849,7 +835,6 @@ export class AuxiliaryScreenCanvas {
 			() => this.onAction?.({ type: 'REBOOT' })
 		);
 
-		// Button 6: Audio Mute
 		this.renderTeletypeCommand(
 			ctx,
 			20 + (w + gap) * 5,

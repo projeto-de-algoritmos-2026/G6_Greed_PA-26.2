@@ -28,7 +28,7 @@ export class DystopianPoster {
 
 	constructor() {
 		this.group = new THREE.Group();
-		this.group.position.set(-4.30, 1.05, -2.37);
+		this.group.position.set(-3.85, 1.05, -2.37);
 
 		const pW = 0.96;
 		const pH = 1.256;
@@ -84,7 +84,6 @@ export class DystopianPoster {
 
 		this.group.userData = { isPoster: true };
 
-		// Carrega a logo do peixe do terminal.png e atualiza o pôster
 		const logoImg = new Image();
 		logoImg.src = '/terminal.png';
 
@@ -96,7 +95,7 @@ export class DystopianPoster {
 		if (logoImg.complete && logoImg.naturalWidth > 0) {
 			render();
 		} else {
-			render(); // render inicial imediato
+			render(); 
 			logoImg.onload = () => render();
 		}
 	}
@@ -107,7 +106,6 @@ export class DystopianPoster {
 		H: number,
 		logoImg: HTMLImageElement
 	): void {
-		// --- 1. FUNDO RETRÔ DE SEGURANÇA NAVAL ---
 		const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
 		bgGrad.addColorStop(0, '#0c1b26');
 		bgGrad.addColorStop(0.35, '#122535');
@@ -116,7 +114,6 @@ export class DystopianPoster {
 		ctx.fillStyle = bgGrad;
 		ctx.fillRect(0, 0, W, H);
 
-		// Ruído e textura procedural de papel/chapa naval
 		const imgData = ctx.getImageData(0, 0, W, H);
 		const px = imgData.data;
 		for (let i = 0; i < px.length; i += 8) {
@@ -127,7 +124,6 @@ export class DystopianPoster {
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		// Moldura perimetral industrial dupla com rebites visuais
 		ctx.strokeStyle = '#22384a';
 		ctx.lineWidth = 14;
 		ctx.strokeRect(14, 14, W - 28, H - 28);
@@ -136,7 +132,6 @@ export class DystopianPoster {
 		ctx.lineWidth = 3.5;
 		ctx.strokeRect(24, 24, W - 48, H - 48);
 
-		// Faixas listradas amarelas e pretas no topo e na base
 		const drawHazardStripes = (y: number, h: number) => {
 			ctx.save();
 			ctx.beginPath();
@@ -162,7 +157,6 @@ export class DystopianPoster {
 		const padX = 54;
 		const mainW = W - padX * 2;
 
-		// --- 2. CABEÇALHO MILITAR NAVAL (Y: 64 a 245) ---
 		ctx.fillStyle = '#9e1a1a';
 		ctx.fillRect(padX, 64, mainW, 38);
 		ctx.textAlign = 'center';
@@ -178,7 +172,6 @@ export class DystopianPoster {
 		ctx.font = '900 23px "Courier New", monospace';
 		ctx.fillText('O ABISSO NÃO PERDOA O ECO // O SILÊNCIO É NOSSA ÚNICA BLINDAGEM', W / 2, 222);
 
-		// --- 3. JANELA ARTÍSTICA DA FOSSA E DO LEVIATÃ (Y: 255 a 1005) ---
 		const artY = 255;
 		const artH = 750;
 
@@ -187,7 +180,6 @@ export class DystopianPoster {
 		ctx.rect(padX, artY, mainW, artH);
 		ctx.clip();
 
-		// Fundo da fossa com gradiente abissal profundo
 		const oceanGrad = ctx.createLinearGradient(0, artY, 0, artY + artH);
 		oceanGrad.addColorStop(0, '#0d2033');
 		oceanGrad.addColorStop(0.35, '#071320');
@@ -196,9 +188,7 @@ export class DystopianPoster {
 		ctx.fillStyle = oceanGrad;
 		ctx.fillRect(padX, artY, mainW, artH);
 
-		// Paredes rochosas da fossa basáltica à esquerda e à direita
 		ctx.fillStyle = '#141e26';
-		// Falésia esquerda
 		ctx.beginPath();
 		ctx.moveTo(padX, artY);
 		ctx.lineTo(padX + 90, artY);
@@ -210,7 +200,6 @@ export class DystopianPoster {
 		ctx.closePath();
 		ctx.fill();
 
-		// Falésia direita
 		ctx.beginPath();
 		ctx.moveTo(padX + mainW, artY);
 		ctx.lineTo(padX + mainW - 90, artY);
@@ -222,7 +211,6 @@ export class DystopianPoster {
 		ctx.closePath();
 		ctx.fill();
 
-		// Marcações de profundidade na falésia esquerda
 		const depths = [
 			{ frac: 0.12, label: '0m - SUPERFÍCIE (SOL)' },
 			{ frac: 0.38, label: '-3.000m - ZONA BATIAL' },
@@ -244,11 +232,9 @@ export class DystopianPoster {
 			ctx.fillText(d.label, padX + 170, ly + 4);
 		});
 
-		// Posição central do submarino Tartarus-V
 		const subCX = padX + Math.floor(mainW * 0.58);
 		const subCY = artY + Math.floor(artH * 0.38);
 
-		// Anéis de choque de sonar emitidos pela transmissão não comprimida
 		ctx.lineWidth = 2;
 		for (const r of [80, 160, 250, 350, 460]) {
 			ctx.strokeStyle = 'rgba(220, 45, 45, 0.38)';
@@ -257,7 +243,6 @@ export class DystopianPoster {
 			ctx.stroke();
 		}
 
-		// Cone de luz dos holofotes do submarino cortando a água
 		const coneGrad = ctx.createLinearGradient(subCX + 75, subCY, subCX + 400, subCY);
 		coneGrad.addColorStop(0, 'rgba(60, 180, 200, 0.35)');
 		coneGrad.addColorStop(1, 'rgba(40, 120, 150, 0.0)');
@@ -269,21 +254,17 @@ export class DystopianPoster {
 		ctx.closePath();
 		ctx.fill();
 
-		// Silhueta do Submarino Tartarus-V
 		ctx.fillStyle = '#2b4458';
 		ctx.strokeStyle = '#5f91b4';
 		ctx.lineWidth = 3;
-		// Casco principal
 		ctx.beginPath();
 		ctx.ellipse(subCX, subCY, 90, 28, 0, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.stroke();
-		// Torre de comando
 		ctx.beginPath();
 		ctx.roundRect(subCX - 25, subCY - 52, 45, 27, 4);
 		ctx.fill();
 		ctx.stroke();
-		// Janela frontal iluminada
 		ctx.fillStyle = '#78f0d2';
 		ctx.strokeStyle = '#ffffff';
 		ctx.lineWidth = 2;
@@ -297,7 +278,6 @@ export class DystopianPoster {
 		ctx.font = '900 13px "Courier New", monospace';
 		ctx.fillText('SUBMARINO TARTARUS-V', subCX, subCY + 45);
 
-		// Silhueta colossal do Leviatã Abissal no leito da fossa
 		const beastY = artY + Math.floor(artH * 0.76);
 		const beastCX = subCX;
 
@@ -316,7 +296,6 @@ export class DystopianPoster {
 		ctx.closePath();
 		ctx.fill();
 
-		// Olhos vermelhos bioluminescentes do predador
 		ctx.fillStyle = '#ff2828';
 		ctx.shadowColor = '#ff1111';
 		ctx.shadowBlur = 18;
@@ -335,7 +314,6 @@ export class DystopianPoster {
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.fillText('ATRAÍDO POR TRANSMISSÕES NÃO-COMPRIMIDAS (> 40 dB)', beastCX - 55, beastY + 55);
 
-		// BRASÃO OFICIAL DOURADO COM O PEIXE DO TERMINAL.PNG
 		const crestCX = padX + 220;
 		const crestCY = artY + 150;
 		const crestR = 110;
@@ -362,10 +340,8 @@ export class DystopianPoster {
 		ctx.fillText('★ 1ª DIV. MERGULHO ★', crestCX, crestCY - crestR + 20);
 		ctx.fillText('"IN SILENTIO VINCIMUS"', crestCX, crestCY + crestR - 18);
 
-		// Desenho nítido e dourado da logo do peixe (terminal.png)
 		drawTintedImage(ctx, logoImg, crestCX - 67, crestCY - 65, 134, 134, '#ebaf1e');
 
-		// Barra de legenda no rodapé da janela do oceano
 		ctx.fillStyle = 'rgba(16, 28, 38, 0.92)';
 		ctx.fillRect(padX + 10, artY + artH - 38, mainW - 20, 32);
 		ctx.fillStyle = '#b4d7f0';
@@ -374,12 +350,10 @@ export class DystopianPoster {
 
 		ctx.restore();
 
-		// Borda da janela da fossa
 		ctx.strokeStyle = '#23415f';
 		ctx.lineWidth = 3;
 		ctx.strokeRect(padX, artY, mainW, artH);
 
-		// --- 4. RELATÓRIO HISTÓRICO NAVAL (Y: 1030 a 1480) ---
 		const dispY = 1030;
 		const dispH = 450;
 		ctx.fillStyle = '#0c141c';
@@ -388,7 +362,6 @@ export class DystopianPoster {
 		ctx.lineWidth = 3;
 		ctx.strokeRect(padX, dispY, mainW, dispH);
 
-		// Barra de título do relatório
 		ctx.fillStyle = '#182838';
 		ctx.fillRect(padX, dispY, mainW, 44);
 		ctx.textAlign = 'left';
@@ -425,7 +398,6 @@ export class DystopianPoster {
 			curY += 36;
 		});
 
-		// Carimbo de borracha vermelho: CLASSIFICAÇÃO ÔMEGA
 		ctx.save();
 		const sCX = padX + mainW - 250;
 		const sCY = dispY + dispH - 95;
@@ -444,7 +416,6 @@ export class DystopianPoster {
 		ctx.fillText('DIRETRIZ DE SEGURANÇA NACIONAL // 1981', 0, 24);
 		ctx.restore();
 
-		// --- 5. ORDEM GERAL DE OPERAÇÕES MANDATÓRIA (Y: 1500 a 1700) ---
 		const dirY = 1500;
 		const dirH = 195;
 		ctx.fillStyle = '#101a14';
@@ -472,7 +443,6 @@ export class DystopianPoster {
 		ctx.font = '900 18px "Courier New", monospace';
 		ctx.fillText('A matemática de Huffman é a espessura do seu casco.', W / 2, dirY + 152);
 
-		// --- 6. RODAPÉ INSTITUCIONAL (Y: 1715 a 1870) ---
 		const footY = 1715;
 		const footH = 155;
 		ctx.fillStyle = '#060c12';
@@ -481,7 +451,6 @@ export class DystopianPoster {
 		ctx.lineWidth = 2;
 		ctx.strokeRect(padX, footY, mainW, footH);
 
-		// Logo em miniatura ciano brilhante no rodapé
 		drawTintedImage(ctx, logoImg, padX + 24, footY + 28, 100, 100, '#00ffb4');
 
 		ctx.textAlign = 'left';

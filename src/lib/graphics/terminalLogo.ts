@@ -1,7 +1,3 @@
-/**
- * Terminal Logo Manager for Nautilus-OS / Tartarus terminals.
- * Provides pre-tinted phosphor canvas caches and CRT scanline/glow rendering.
- */
 
 export type PhosphorTheme = 'green' | 'amber' | 'cyan' | 'white';
 
@@ -74,15 +70,12 @@ export class TerminalLogoManager {
 			const ctx = canvas.getContext('2d');
 			if (!ctx) continue;
 
-			// Draw base image
 			ctx.drawImage(this.rawImage, 0, 0);
 
-			// Source-in to tint the white pixels to the phosphor color
 			ctx.globalCompositeOperation = 'source-in';
 			ctx.fillStyle = colors.primary;
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-			// Overlay a softer white inner core on bright areas
 			ctx.globalCompositeOperation = 'source-over';
 			ctx.globalAlpha = 0.35;
 			ctx.drawImage(this.rawImage, 0, 0);
@@ -96,9 +89,6 @@ export class TerminalLogoManager {
 		return this.tintedCaches.get(theme) || null;
 	}
 
-	/**
-	 * Draws the terminal logo with CRT analog effects (glow, beam sweep, scanlines, glitch).
-	 */
 	public draw(
 		ctx: CanvasRenderingContext2D,
 		centerX: number,
@@ -107,9 +97,9 @@ export class TerminalLogoManager {
 		options: {
 			theme?: PhosphorTheme;
 			alpha?: number;
-			revealProgress?: number; // 0..1 sweep from top to bottom
-			glowIntensity?: number; // 0..1
-			glitchOffset?: number; // horizontal glitch shift in px
+			revealProgress?: number; 
+			glowIntensity?: number; 
+			glitchOffset?: number; 
 			drawRings?: boolean;
 		} = {}
 	): void {
@@ -136,7 +126,6 @@ export class TerminalLogoManager {
 		const glowColor =
 			theme === 'green' ? 'rgba(0, 255, 170, ' : theme === 'amber' ? 'rgba(255, 158, 36, ' : 'rgba(0, 229, 255, ';
 
-		// 1. Decorative targeting/orbital reticles around the logo (retro analog OS framing)
 		if (drawRings) {
 			const ringRadius = half * 1.18;
 			ctx.save();
@@ -146,7 +135,6 @@ export class TerminalLogoManager {
 			ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
 			ctx.stroke();
 
-			// Broken outer brackets
 			ctx.strokeStyle = `${glowColor}${0.35 * alpha})`;
 			ctx.lineWidth = 1.5;
 			const bracketLen = Math.PI * 0.18;
@@ -157,7 +145,6 @@ export class TerminalLogoManager {
 				ctx.stroke();
 			}
 
-			// Subtle corner ticks
 			const tickLen = 8;
 			const r = ringRadius + 14;
 			ctx.beginPath();
@@ -173,7 +160,6 @@ export class TerminalLogoManager {
 			ctx.restore();
 		}
 
-		// 2. Phosphor halo glow underneath
 		if (glowIntensity > 0) {
 			const grad = ctx.createRadialGradient(
 				centerX,
@@ -192,23 +178,19 @@ export class TerminalLogoManager {
 			ctx.fill();
 		}
 
-		// 3. Draw the Logo
 		const tinted = this.getTintedCanvas(theme);
 		const source = tinted || this.rawImage;
 
 		if (source) {
 			ctx.save();
 
-			// Clip by revealProgress (raster scan reveal from top to bottom)
 			if (revealProgress < 1.0) {
 				ctx.beginPath();
 				ctx.rect(x - 20, y - 20, size + 40, (size + 40) * Math.max(0, Math.min(1, revealProgress)));
 				ctx.clip();
 			}
 
-			// Apply horizontal glitch offset if active
 			if (Math.abs(glitchOffset) > 0.1) {
-				// Jitter slice
 				const sliceY = y + size * 0.45;
 				const sliceH = size * 0.2;
 				ctx.drawImage(source, 0, 0, source.width, source.height * 0.45, x, y, size, size * 0.45);
@@ -240,7 +222,6 @@ export class TerminalLogoManager {
 
 			ctx.restore();
 
-			// 4. CRT beam sweep line across the reveal frontier
 			if (revealProgress > 0 && revealProgress < 1.0) {
 				const beamY = y + size * revealProgress;
 				ctx.save();
@@ -253,7 +234,6 @@ export class TerminalLogoManager {
 				ctx.lineTo(x + size + 15, beamY);
 				ctx.stroke();
 
-				// Soft gradient trailing the beam
 				const beamGrad = ctx.createLinearGradient(0, beamY - 14, 0, beamY);
 				beamGrad.addColorStop(0, `${glowColor}0)`);
 				beamGrad.addColorStop(1, `${glowColor}${0.45 * alpha})`);
@@ -262,7 +242,6 @@ export class TerminalLogoManager {
 				ctx.restore();
 			}
 		} else {
-			// Fallback vector placeholder if image is still loading
 			this.drawFallbackLogo(ctx, centerX, centerY, size, phosphorColor);
 		}
 
@@ -281,7 +260,6 @@ export class TerminalLogoManager {
 		ctx.strokeStyle = color;
 		ctx.lineWidth = 2.5;
 
-		// Spiral Nautilus shell stylized vector fallback
 		ctx.beginPath();
 		for (let a = 0; a < Math.PI * 4; a += 0.1) {
 			const radius = (r * 0.2) + (r * 0.8) * (a / (Math.PI * 4));
@@ -316,11 +294,6 @@ export class TerminalLogoManager {
 		}
 	}
 
-	/**
-	 * Renders an authentic Windows XP-style boot splash screen
-	 * with pitch black background, centered logo emblem, clean typography,
-	 * and the iconic 3-block moving marquee loading bar.
-	 */
 	public drawXPBootScreen(
 		ctx: CanvasRenderingContext2D,
 		config: {
@@ -351,11 +324,9 @@ export class TerminalLogoManager {
 			accentColor
 		} = config;
 
-		// 1. Solid pitch black background (authentic Windows XP)
 		ctx.fillStyle = '#000000';
 		ctx.fillRect(0, 0, width, height);
 
-		// 2. Smooth fade-in & fade-out
 		const fadeIn = 0.45;
 		const fadeOut = 0.45;
 		let alpha = 1.0;
@@ -370,13 +341,11 @@ export class TerminalLogoManager {
 		ctx.save();
 		ctx.globalAlpha = alpha;
 
-		// 3. Top subtle corporate tag
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
 		ctx.font = '12px "Lucida Console", "Courier New", monospace';
 		ctx.textAlign = 'center';
 		ctx.fillText(companyName, width / 2, 175);
 
-		// 4. Centered OS Emblem Logo
 		const logoSize = 175;
 		const logoCX = width / 2;
 		const logoCY = 295;
@@ -388,11 +357,9 @@ export class TerminalLogoManager {
 			drawRings: false
 		});
 
-		// 5. Windows XP-Style Brand Wordmark: "SONARWAVE xp" / "TARTARUS xp"
 		const textY = 422;
 		ctx.save();
 
-		// Measure widths for perfect centering of both parts
 		ctx.font = 'bold 44px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
 		const mainW = ctx.measureText(titleMain).width;
 
@@ -403,7 +370,6 @@ export class TerminalLogoManager {
 		const totalBrandW = mainW + gap + xpW;
 		const brandStartX = (width - totalBrandW) / 2;
 
-		// Main title word (white with soft shadow)
 		ctx.font = 'bold 44px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
 		ctx.fillStyle = '#ffffff';
 		ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
@@ -411,7 +377,6 @@ export class TerminalLogoManager {
 		ctx.textAlign = 'left';
 		ctx.fillText(titleMain, brandStartX, textY);
 
-		// "xp" in contrasting accent color (orange/cyan)
 		const xpCol = accentColor || (theme === 'green' ? '#00e5ff' : '#ff7a00');
 		ctx.font = 'bold italic 40px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
 		ctx.fillStyle = xpCol;
@@ -419,7 +384,6 @@ export class TerminalLogoManager {
 		ctx.shadowBlur = 10;
 		ctx.fillText(titleXP, brandStartX + mainW + gap, textY - 3);
 
-		// Subtitle ("Professional" / "Teletype Edition")
 		ctx.shadowBlur = 0;
 		ctx.font = 'italic bold 15px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
 		ctx.fillStyle = theme === 'green' ? '#00ffaa' : '#ff9e24';
@@ -427,14 +391,12 @@ export class TerminalLogoManager {
 		ctx.fillText(subtitle, brandStartX + totalBrandW, textY + 22);
 		ctx.restore();
 
-		// 6. The Iconic 3-Block Marquee Loading Bar
 		const trackW = 250;
 		const trackH = 18;
 		const trackX = (width - trackW) / 2;
 		const trackY = 480;
 		const r = 3;
 
-		// Track container (dark recessed groove)
 		ctx.fillStyle = '#060708';
 		this.drawRoundRectPath(ctx, trackX, trackY, trackW, trackH, r);
 		ctx.fill();
@@ -445,25 +407,21 @@ export class TerminalLogoManager {
 		this.drawRoundRectPath(ctx, trackX, trackY, trackW, trackH, r);
 		ctx.stroke();
 
-		// Inner darker inset border
 		ctx.strokeStyle = '#020304';
 		ctx.lineWidth = 1.0;
 		this.drawRoundRectPath(ctx, trackX + 1, trackY + 1, trackW - 2, trackH - 2, r - 1);
 		ctx.stroke();
 
-		// Clip strictly inside the track
 		ctx.save();
 		this.drawRoundRectPath(ctx, trackX + 2, trackY + 2, trackW - 4, trackH - 4, r - 1);
 		ctx.clip();
 
-		// 3 moving 3D gel blocks
 		const numBlocks = 3;
 		const blockW = 13;
 		const blockH = trackH - 4;
 		const blockGap = 3;
 		const totalGroupW = numBlocks * blockW + (numBlocks - 1) * blockGap;
 
-		// Travel across every 1.15 seconds
 		const traverseDuration = 1.15;
 		const cycle = (bootTime / traverseDuration) % 1.0;
 		const startGroupX = trackX - totalGroupW - 12;
@@ -474,7 +432,6 @@ export class TerminalLogoManager {
 			const bx = currentGroupX + b * (blockW + blockGap);
 			const by = trackY + 2;
 
-			// 3D gel pill gradient
 			const grad = ctx.createLinearGradient(0, by, 0, by + blockH);
 			if (theme === 'green') {
 				grad.addColorStop(0, '#c2ffea');
@@ -492,21 +449,18 @@ export class TerminalLogoManager {
 			this.drawRoundRectPath(ctx, bx, by, blockW, blockH, 2);
 			ctx.fill();
 
-			// Glossy top specular reflection
 			ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
 			ctx.fillRect(bx + 1, by + 1, blockW - 2, 2);
 		}
 
-		ctx.restore(); // end clip
+		ctx.restore(); 
 
-		// 7. Footer / Copyright
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
 		ctx.font = '12px "Segoe UI", Arial, sans-serif';
 		ctx.textAlign = 'center';
 		ctx.fillText(copyrightText, width / 2, 702);
 		ctx.fillText('Tartarus Deep Sea Submersible Research Facility', width / 2, 720);
 
-		// 8. Subtle skip prompt
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
 		ctx.font = '11px "Trebuchet MS", sans-serif';
 		ctx.fillText('[ Clique ou pressione qualquer tecla para iniciar ]', width / 2, 746);

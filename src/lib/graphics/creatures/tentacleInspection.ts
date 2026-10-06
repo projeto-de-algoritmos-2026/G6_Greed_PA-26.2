@@ -179,22 +179,14 @@ export class TentacleInspectionActor implements WindowEventActor {
 		return true;
 	}
 
-	/**
-	 * Calculates the exterior surface Z of the submarine hull in hatchPivot coordinates.
-	 * Prevents tentacle segments from clipping into the curved cabin ceiling above the window.
-	 */
 	private getHullExteriorZ(y: number): number {
-		// Window opening extends between y = -1.18 and +1.18
 		if (y <= 1.18 && y >= -1.18) {
 			return 0.0;
 		}
-		// Submarine hull is a cylinder centered at cabin Y = -0.6, radius ~5.25.
-		// In hatchPivot space: Y_cabin = y + 0.95 => dY = y + 1.55.
 		const dY = Math.abs(y + 1.55);
 		const hullRadius = 5.25;
 		if (dY < hullRadius) {
 			const xCabin = Math.sqrt(hullRadius * hullRadius - dY * dY);
-			// hatchPivot is at X = 4.75 in cabin
 			return xCabin - 4.75;
 		}
 		return -2.5;
@@ -237,7 +229,6 @@ export class TentacleInspectionActor implements WindowEventActor {
 			glassContact = Math.max(0, 1.0 - leaveP * 2.5);
 		}
 
-		// Base anchored on the exterior of the hull above the window frame
 		const baseX = 2.65;
 		const baseY = 1.95;
 		const baseZ = this.getHullExteriorZ(baseY) - 0.55;
@@ -267,7 +258,6 @@ export class TentacleInspectionActor implements WindowEventActor {
 
 			const targetZ = THREE.MathUtils.lerp(oceanDepth, contactDepth, segContactWeight);
 
-			// Strict clamp: never allow penetration through window glass OR curved cabin ceiling hull
 			const maxAllowedZ = Math.min(-0.018 - r, hullZ - r - 0.05);
 			const clampedZ = Math.min(maxAllowedZ, targetZ);
 

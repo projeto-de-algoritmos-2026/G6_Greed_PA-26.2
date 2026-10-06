@@ -30,8 +30,6 @@ export class OpeningsManager {
 	private hatchLightLevel: number = 1.0;
 	private hatchFlickerTimer: number = 0;
 	private currentPhase: ScenePhase = 1;
-	// Dano acumulado entre fases (0..1): rachaduras não somem abaixo deste piso
-	// e as luzes externas falham com mais frequência.
 	private persistentDamage: number = 0;
 
 	constructor() {

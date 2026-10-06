@@ -69,7 +69,6 @@
 	let tensionInterval: number | null = null;
 
 	let hiddenChars = $state.raw<string[]>([]);
-	// Cada fusão não gulosa acelera o vazamento acústico da fase.
 	let leakMultiplier = $state(1);
 	let silenceRemaining = $state(0);
 	let silenceCooldown = 0;
@@ -82,8 +81,6 @@
 	let isAlternativeOptimal = $state(false);
 	let gameOverCause = $state<string | null>(null);
 
-	// Dano acumulado entre fases (0..1): reduz a integridade do casco, acelera o
-	// vazamento e deixa marcas permanentes na escotilha.
 	let hullDamage = $state(0);
 	let peakProximity = 0;
 
@@ -164,7 +161,6 @@
 				if (action.type === 'SELECT_LEVEL') {
 					isFreeMode = false;
 					currentLevelIndex = action.index;
-					// Recomeçar do primeiro setor devolve um casco intacto.
 					if (action.index === 0) hullDamage = 0;
 					loadCurrentLevel();
 				} else if (action.type === 'FREE_MODE') {
@@ -209,7 +205,6 @@
 		tensionInterval = window.setInterval(() => {
 			if (!isAudioStarted || isGameOver) return;
 
-			// Hesitar com a criatura colada ao casco também gera ruído.
 			if (isTransmissionInterrupted) {
 				increaseProximity(INTERRUPT_STALL_NOISE);
 				return;
@@ -247,6 +242,7 @@
 	function loadCurrentLevel(): void {
 		activateAudio();
 		audio.playRelayClick();
+		audio.fadeInMusic(3.0);
 		const text = isFreeMode
 			? customMessage
 			: pickRandom(LEVELS[currentLevelIndex].messages, activeMessage);
@@ -285,10 +281,6 @@
 		refreshState();
 	}
 
-	/**
-	 * Sorteia símbolos cuja frequência chega corrompida. Pelo menos dois
-	 * continuam visíveis, e o jogador deduz os demais contando na mensagem.
-	 */
 	function pickHiddenChars(count: number): string[] {
 		const pool = [...huffman.frequencies.keys()].filter((ch) => ch !== ' ');
 		const amount = Math.min(count, Math.max(0, huffman.frequencies.size - 2), pool.length);
@@ -326,7 +318,6 @@
 		}
 	}
 
-	// Qualquer comando durante o silêncio obrigatório denuncia a posição.
 	function breakSilence(): void {
 		if (silenceRemaining <= 0) return;
 		increaseProximity(SILENCE_BREAK_NOISE);
@@ -617,9 +608,6 @@
 		refreshState();
 
 		const transmissionIntervalMs = 110;
-		// Cada fase define quantos bits podem ser transmitidos com segurança.
-		// Dentro da cota o ruído é proporcional ao uso dela; acima, o excesso
-		// gera penalidade extra e a árvore é rejeitada ao final da transmissão.
 		const isWithinQuota = fullBitStream.length <= safeBitQuota;
 		const baseTransmissionNoise = 18.0;
 		const excessBits = Math.max(0, fullBitStream.length - safeBitQuota);
@@ -676,11 +664,6 @@
 		syncScreenTexture();
 	}
 
-	/**
-	 * Continuar mantém o ritmo, mas a criatura colada ao casco amplifica o ruído
-	 * dos próximos bits. Segurar o sinal protege o hidrofone ao custo de dano
-	 * permanente no casco.
-	 */
 	function resumeTransmission(force: boolean): void {
 		if (!isTransmissionInterrupted) return;
 		isTransmissionInterrupted = false;
@@ -701,14 +684,11 @@
 		transmissionTimer = null;
 		isTransmitting = false;
 
-		// A cota é a regra de sobrevivência da fase: transmitir uma árvore
-		// completa, mas acima da margem permitida, ainda causa o colapso.
 		if (metrics.playerBits > safeBitQuota) {
 			triggerGameOver();
 			return;
 		}
 
-		// O estresse acústico da fase deixa marcas que acompanham o casco.
 		damageHull((peakProximity / 100) * 0.2);
 		isVictory = true;
 		audio.playTransmissionSuccess();
@@ -769,7 +749,6 @@
 		syncScreenTexture();
 	}
 
-	// A superfície sempre transmite com a árvore gulosa ótima; a entidade não.
 	function judgeResponse(trustAsAuthentic: boolean): void {
 		if (!decodeChallenge || !decodeState || decodeState.stage !== 'verdict') return;
 
@@ -862,7 +841,6 @@
 		syncScreenTexture();
 	}
 
-	// Durante a decodificação as letras digitadas são palpites, não atalhos.
 	function handleDecodeKey(e: KeyboardEvent): void {
 		if (!decodeState) return;
 		if (e.key === 'Escape') {

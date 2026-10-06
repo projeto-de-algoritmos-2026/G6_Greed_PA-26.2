@@ -118,7 +118,7 @@ export class DevPanel {
 		lumLabel.style.fontSize = '11px';
 
 		const lumVal = document.createElement('span');
-		lumVal.innerText = '100%';
+		lumVal.innerText = '70%';
 		lumVal.style.color = '#ffea78';
 		lumVal.style.fontWeight = 'bold';
 		lumVal.style.fontSize = '11px';
@@ -131,7 +131,7 @@ export class DevPanel {
 		lumSlider.type = 'range';
 		lumSlider.min = '20';
 		lumSlider.max = '300';
-		lumSlider.value = '100';
+		lumSlider.value = '70';
 		lumSlider.style.width = '100%';
 		lumSlider.style.marginBottom = '6px';
 		lumSlider.oninput = (e) => {

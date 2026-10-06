@@ -107,27 +107,27 @@
 	aria-modal="true"
 	aria-label="Alerta de Falha Catastrófica"
 >
-	<!-- Emergency Siren Radial Red Strobe -->
+	
 	<div class="absolute inset-0 emergency-strobe pointer-events-none"></div>
 
-	<!-- Analog CRT Scanlines & Shadow Mask -->
+	
 	<div class="absolute inset-0 crt-scanlines pointer-events-none"></div>
 
-	<!-- Cracked Glass Procedural Web Overlay -->
+	
 	<svg
 		class="absolute inset-0 w-full h-full pointer-events-none cracked-glass"
 		viewBox="0 0 1920 1080"
 		preserveAspectRatio="none"
 		xmlns="http://www.w3.org/2000/svg"
 	>
-		<!-- Impact crater center: (1380, 240) -->
+		
 		<g stroke="#ffffff" stroke-width="1.8" opacity="0.75" fill="none" stroke-linecap="round" stroke-linejoin="round">
-			<!-- Concentric impact fracture rings -->
+			
 			<path d="M 1380 200 Q 1420 220 1440 250 Q 1430 290 1390 300 Q 1350 280 1340 240 Q 1350 210 1380 200 Z" stroke-width="2.5" />
 			<path d="M 1380 160 Q 1460 190 1490 250 Q 1470 330 1390 350 Q 1310 320 1290 240 Q 1320 170 1380 160 Z" opacity="0.6" />
 			<path d="M 1380 110 Q 1520 160 1560 260 Q 1530 380 1390 410 Q 1250 370 1230 250 Q 1270 130 1380 110 Z" opacity="0.4" />
 
-			<!-- Major radiating fracture cracks -->
+			
 			<path d="M 1380 240 L 1260 180 L 1150 140 L 980 90 L 820 60 L 540 20 L 0 0" stroke-width="2.2" />
 			<path d="M 1380 240 L 1320 340 L 1240 460 L 1180 580 L 1090 740 L 1020 920 L 980 1080" stroke-width="2.4" />
 			<path d="M 1380 240 L 1490 290 L 1620 380 L 1750 490 L 1880 620 L 1920 670" stroke-width="2.0" />
@@ -139,7 +139,7 @@
 			<path d="M 1260 180 L 1240 100 L 1210 0" stroke-width="1.4" opacity="0.5" />
 			<path d="M 1490 290 L 1580 250 L 1720 220 L 1920 200" stroke-width="1.4" opacity="0.5" />
 		</g>
-		<!-- Red internal refraction glow along the cracks -->
+		
 		<g stroke="#ff2a3b" stroke-width="4" opacity="0.3" fill="none" filter="blur(3px)" stroke-linecap="round">
 			<path d="M 1380 240 L 1260 180 L 1150 140 L 980 90 L 540 20" />
 			<path d="M 1380 240 L 1320 340 L 1240 460 L 1090 740 L 980 1080" />
@@ -148,11 +148,11 @@
 		</g>
 	</svg>
 
-	<!-- Main Terminal Incident Box -->
+	
 	<div
 		class="relative z-10 w-full max-w-4xl mx-4 sm:mx-6 p-6 sm:p-10 border-2 border-[#ff2a3b] bg-black/92 backdrop-blur-md shadow-[0_0_60px_rgba(255,42,59,0.45)] rounded-sm font-mono text-[#ff4455] terminal-panel"
 	>
-		<!-- Top Terminal Header Bar -->
+		
 		<div class="flex items-center justify-between border-b-2 border-[#ff2a3b]/60 pb-4 mb-6">
 			<div class="flex items-center gap-3">
 				<span class="inline-block w-4 h-4 bg-[#ff2a3b] rounded-full animate-ping"></span>
@@ -165,7 +165,7 @@
 			</div>
 		</div>
 
-		<!-- Black Box Teletype Content -->
+		
 		<div class="space-y-3 min-h-[260px] sm:min-h-[300px] text-xs sm:text-sm md:text-base leading-relaxed tracking-wider">
 			{#each displayedLines as line, idx}
 				{#if idx === 1}
@@ -189,7 +189,7 @@
 			{/each}
 		</div>
 
-		<!-- Telemetry Cards Grid -->
+		
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 mt-6 border-t border-[#ff2a3b]/40 text-center">
 			<div class="p-3 bg-[#330005]/60 border border-[#ff2a3b]/30 rounded">
 				<div class="text-[10px] sm:text-xs text-[#ff8899]/70 uppercase tracking-widest">Profundidade</div>
@@ -211,7 +211,7 @@
 			</div>
 		</div>
 
-		<!-- Action Footer Button -->
+		
 		<div class="pt-8 sm:pt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
 			<div class="text-[11px] sm:text-xs text-[#ff8899]/60 tracking-wider text-center sm:text-left">
 				<span>Pressione <kbd class="px-1.5 py-0.5 bg-[#400008] border border-[#ff3b3b]/40 rounded text-[#ffccd2] font-mono">R</kbd> ou <kbd class="px-1.5 py-0.5 bg-[#400008] border border-[#ff3b3b]/40 rounded text-[#ffccd2] font-mono">ENTER</kbd> para reiniciar</span>

@@ -23,8 +23,8 @@ export class CreatureSoundSynthesizer {
 		osc2.frequency.exponentialRampToValueAtTime(28, now + dur);
 
 		subGain.gain.setValueAtTime(0.001, now);
-		subGain.gain.linearRampToValueAtTime(0.65 * intensity, now + 1.1);
-		subGain.gain.setValueAtTime(0.55 * intensity, now + dur * 0.6);
+		subGain.gain.linearRampToValueAtTime(0.32 * intensity, now + 1.1);
+		subGain.gain.setValueAtTime(0.26 * intensity, now + dur * 0.6);
 		subGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 		const sat = createSaturationNode(ctx, 2.4);
@@ -61,7 +61,7 @@ export class CreatureSoundSynthesizer {
 
 		const noiseGain = ctx.createGain();
 		noiseGain.gain.setValueAtTime(0.001, now);
-		noiseGain.gain.linearRampToValueAtTime(0.52 * intensity, now + 1.2);
+		noiseGain.gain.linearRampToValueAtTime(0.24 * intensity, now + 1.2);
 		noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 		noise.connect(filter);
@@ -86,7 +86,7 @@ export class CreatureSoundSynthesizer {
 		subOsc.frequency.setValueAtTime(88, now);
 		subOsc.frequency.exponentialRampToValueAtTime(24, now + 0.85);
 
-		subGain.gain.setValueAtTime(0.95, now);
+		subGain.gain.setValueAtTime(0.45, now);
 		subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
 
 		const sat = createSaturationNode(ctx, 4.2);
@@ -107,7 +107,7 @@ export class CreatureSoundSynthesizer {
 		crackOsc.frequency.setValueAtTime(4200, now);
 		crackOsc.frequency.exponentialRampToValueAtTime(1450, now + 0.08);
 
-		crackGain.gain.setValueAtTime(0.85, now);
+		crackGain.gain.setValueAtTime(0.38, now);
 		crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
 
 		const crackFilter = ctx.createBiquadFilter();
@@ -129,7 +129,7 @@ export class CreatureSoundSynthesizer {
 			shatterFilter.type = 'highpass';
 			shatterFilter.frequency.setValueAtTime(2600, now);
 			const shatterGain = ctx.createGain();
-			shatterGain.gain.setValueAtTime(0.75, now);
+			shatterGain.gain.setValueAtTime(0.32, now);
 			shatterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
 
 			shatterSource.connect(shatterFilter);
@@ -228,8 +228,8 @@ export class CreatureSoundSynthesizer {
 
 		const scrapeGain = ctx.createGain();
 		scrapeGain.gain.setValueAtTime(0.001, now);
-		scrapeGain.gain.linearRampToValueAtTime(0.68, now + 0.12);
-		scrapeGain.gain.setValueAtTime(0.6, now + dur * 0.75);
+		scrapeGain.gain.linearRampToValueAtTime(0.36, now + 0.12);
+		scrapeGain.gain.setValueAtTime(0.30, now + dur * 0.75);
 		scrapeGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 		const sat = createSaturationNode(ctx, 1.8);
@@ -580,8 +580,8 @@ export class CreatureSoundSynthesizer {
 		subFilter.Q.setValueAtTime(3.0, now);
 
 		subGain.gain.setValueAtTime(0.01, now);
-		subGain.gain.linearRampToValueAtTime(0.85, now + 0.05);
-		subGain.gain.setValueAtTime(0.7, now + 1.2);
+		subGain.gain.linearRampToValueAtTime(0.42, now + 0.05);
+		subGain.gain.setValueAtTime(0.35, now + 1.2);
 		subGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 		const subSat = createSaturationNode(ctx, 3.5);
@@ -625,8 +625,8 @@ export class CreatureSoundSynthesizer {
 
 		const gutturalGain = ctx.createGain();
 		gutturalGain.gain.setValueAtTime(0.001, now);
-		gutturalGain.gain.linearRampToValueAtTime(0.65, now + 0.15);
-		gutturalGain.gain.setValueAtTime(0.55, now + 1.4);
+		gutturalGain.gain.linearRampToValueAtTime(0.32, now + 0.15);
+		gutturalGain.gain.setValueAtTime(0.26, now + 1.4);
 		gutturalGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
 		const gutturalSat = createSaturationNode(ctx, 2.2);

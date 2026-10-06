@@ -55,7 +55,7 @@ export class AuxMonitor {
 		lctx.font = 'bold 24px "Courier New", monospace';
 		lctx.fillStyle = '#ff9922';
 		lctx.textAlign = 'center';
-		lctx.fillText('CONSOLE B // LOG TELETYPE', 256, 42);
+		lctx.fillText('LOG TELETYPE // CONSOLE B', 256, 42);
 
 		const plate = new THREE.Mesh(
 			new THREE.PlaneGeometry(1.9, 0.18),

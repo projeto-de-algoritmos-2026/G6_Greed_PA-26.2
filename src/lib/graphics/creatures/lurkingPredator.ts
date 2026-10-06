@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 import type { WindowEventActor, EventContext, StartOptions } from '../types';
 
-/**
- * Creates high-detail procedural abyssal reptile/fish skin with slimy epidermal sheen,
- * mottled dark scales, and bio-iridescent undertones.
- */
 function createEldritchViperSkinTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 512;
@@ -14,7 +10,6 @@ function createEldritchViperSkinTexture(): THREE.CanvasTexture {
 	ctx.fillStyle = '#050a0d';
 	ctx.fillRect(0, 0, 512, 512);
 
-	// Mottled abyssal slime and subcutaneous decay
 	for (let i = 0; i < 90; i++) {
 		const x = Math.random() * 512;
 		const y = Math.random() * 512;
@@ -29,7 +24,6 @@ function createEldritchViperSkinTexture(): THREE.CanvasTexture {
 		ctx.fill();
 	}
 
-	// Hexagonal / diamond abyssal scale pattern
 	ctx.strokeStyle = 'rgba(0, 240, 180, 0.04)';
 	ctx.lineWidth = 1;
 	const step = 14;
@@ -40,7 +34,6 @@ function createEldritchViperSkinTexture(): THREE.CanvasTexture {
 		}
 	}
 
-	// Micro epidermal scratches and mucus pores
 	for (let p = 0; p < 350; p++) {
 		const px = Math.random() * 512;
 		const py = Math.random() * 512;
@@ -97,7 +90,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 	private elapsed: number = 0;
 	private duration: number = 12.0;
 
-	// Resting coordinates directly on the existing ocean seabed
 	private readonly restX: number = 0.35;
 	private readonly restY: number = -2.25;
 	private readonly restZ: number = -3.8;
@@ -108,7 +100,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 
 		const skinTex = createEldritchViperSkinTexture();
 
-		// Materials
 		const skinMat = new THREE.MeshStandardMaterial({
 			map: skinTex,
 			color: 0x091419,
@@ -148,16 +139,10 @@ export class LurkingPredatorActor implements WindowEventActor {
 			side: THREE.DoubleSide
 		});
 
-		// -----------------------------------------------------------
-		// 1. Predator Main Group (Resting on existing seabed)
-		// -----------------------------------------------------------
 		this.predatorGroup = new THREE.Group();
 		this.predatorGroup.position.set(this.restX, this.restY, this.restZ);
 		this.root.add(this.predatorGroup);
 
-		// -----------------------------------------------------------
-		// 2. Articulated Serpentine Body & Spine
-		// -----------------------------------------------------------
 		const numSegments = 9;
 		const totalLength = 3.6;
 		const segLen = totalLength / numSegments;
@@ -210,9 +195,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 			});
 		}
 
-		// -----------------------------------------------------------
-		// 3. Pectoral Fins (Resting directly on seabed sediment)
-		// -----------------------------------------------------------
 		const createPectoralFin = (isLeft: boolean): THREE.Group => {
 			const pGroup = new THREE.Group();
 			const side = isLeft ? 1 : -1;
@@ -249,9 +231,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 		this.pectoralRight.position.set(-0.25, -0.15, -0.32);
 		this.predatorGroup.add(this.pectoralRight);
 
-		// -----------------------------------------------------------
-		// 4. Grotesque Cranium & Opercula
-		// -----------------------------------------------------------
 		this.headGroup = new THREE.Group();
 		this.headGroup.position.set(0.0, 0.04, 0.0);
 		this.predatorGroup.add(this.headGroup);
@@ -296,9 +275,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 		this.operculumRight.rotation.y = -0.12;
 		this.headGroup.add(this.operculumRight);
 
-		// -----------------------------------------------------------
-		// 5. Glazed Cataract Eyes & Sensory Pits
-		// -----------------------------------------------------------
 		const eyeMat = new THREE.MeshStandardMaterial({
 			color: 0x88ffe0,
 			emissive: 0x00dca0,
@@ -336,9 +312,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 			}
 		}
 
-		// -----------------------------------------------------------
-		// 6. Hinged Lower Jaw & Chauliodus Needle Fangs
-		// -----------------------------------------------------------
 		this.lowerJaw = new THREE.Group();
 		this.lowerJaw.position.set(0.32, -0.12, 0);
 		this.headGroup.add(this.lowerJaw);
@@ -408,9 +381,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 			}
 		}
 
-		// -----------------------------------------------------------
-		// 7. Chin Barbel with Lure Beads
-		// -----------------------------------------------------------
 		this.chinBarbel = new THREE.Group();
 		this.chinBarbel.position.set(0.92, -0.10, 0);
 		this.lowerJaw.add(this.chinBarbel);
@@ -436,9 +406,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 			parentBarbelObj = bMesh;
 		}
 
-		// -----------------------------------------------------------
-		// 8. Articulated Illicium (Lure Stalk) & Esca Bulb
-		// -----------------------------------------------------------
 		const stalkBase = new THREE.Group();
 		stalkBase.position.set(0.68, 0.28, 0);
 		this.headGroup.add(stalkBase);
@@ -504,7 +471,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 		this.duration = 12.0;
 		this.root.visible = true;
 
-		// Sits directly on the natural seabed
 		this.predatorGroup.position.set(this.restX, this.restY, this.restZ);
 		this.predatorGroup.rotation.set(0, 0.15, 0);
 		this.headGroup.rotation.set(0, 0, 0);
@@ -523,25 +489,21 @@ export class LurkingPredatorActor implements WindowEventActor {
 			return false;
 		}
 
-		// Bioluminescent lure pulse
 		const lureThrob = 1.8 + Math.sin(this.elapsed * 5.2) * 1.0 + Math.sin(this.elapsed * 11.0) * 0.35;
 		this.escaLight.intensity = lureThrob;
 		(this.escaBulb.material as THREE.MeshStandardMaterial).emissiveIntensity = lureThrob * 1.3;
 
-		// Illicium enticing twitch
 		for (let j = 0; j < this.iliciumJoints.length; j++) {
 			const jPhase = this.elapsed * 2.8 + j * 0.45;
 			this.iliciumJoints[j].rotation.z = Math.sin(jPhase) * 0.06;
 			this.iliciumJoints[j].rotation.y = Math.cos(jPhase * 0.75) * 0.08;
 		}
 
-		// Chin barbel floating in deep water
 		const barbelWave = Math.sin(this.elapsed * 1.6) * 0.15;
 		this.chinBarbel.rotation.z = barbelWave;
 		this.chinBarbel.rotation.x = Math.cos(this.elapsed * 1.4) * 0.12;
 
 		if (progress < 0.65) {
-			// Ambush posture resting on seabed
 			const breathCycle = Math.sin(this.elapsed * 1.7);
 
 			const opFlare = Math.max(0, breathCycle) * 0.28;
@@ -568,7 +530,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 			this.headGroup.rotation.y = Math.sin(this.elapsed * 0.8) * 0.06;
 			this.headGroup.rotation.x = Math.cos(this.elapsed * 0.6) * 0.03;
 		} else if (progress < 0.72) {
-			// Aggression reveal: jaws open wide
 			this.predatorGroup.rotation.y = THREE.MathUtils.lerp(this.predatorGroup.rotation.y, 0.45, dt * 7.0);
 
 			this.lowerJaw.rotation.z = THREE.MathUtils.lerp(this.lowerJaw.rotation.z, -0.65, dt * 9.0);
@@ -579,7 +540,6 @@ export class LurkingPredatorActor implements WindowEventActor {
 				this.iliciumJoints[j].rotation.z = -0.12;
 			}
 		} else {
-			// Explosive launch off the seabed into the black abyss
 			const fleeP = (progress - 0.72) / 0.28;
 			const ease = fleeP * fleeP;
 

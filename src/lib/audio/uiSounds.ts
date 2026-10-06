@@ -22,8 +22,6 @@ export class UISoundSynthesizer {
 		delay.delayTime.setValueAtTime(0.18, now);
 		delayFeedback.gain.setValueAtTime(0.35, now);
 
-		// Bits 1 soam mais brilhantes (triangular) e bits 0 mais surdos (senoidal),
-		// para que o fluxo comprimido possa ser acompanhado de ouvido.
 		osc.type = isOne ? 'triangle' : 'sine';
 		osc.frequency.setValueAtTime(baseFreq, now);
 		osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.65, now + 0.35);
@@ -298,11 +296,8 @@ export class UISoundSynthesizer {
 
 		const now = ctx.currentTime;
 
-		// 1. Subtle analog relay click
 		this.playRelayClick(ctx, masterGain, isMuted);
 
-		// 2. Windows XP-inspired warm, lush harmonic chime chord
-		// Arpeggio notes: Eb3 (155.5Hz), Bb3 (233.1Hz), Eb4 (311.1Hz), G4 (392.0Hz), Bb4 (466.2Hz), Eb5 (622.3Hz)
 		const notes = [
 			{ freq: 155.56, time: 0.05, duration: 2.2, gain: 0.16, type: 'sine' as OscillatorType },
 			{ freq: 233.08, time: 0.20, duration: 2.0, gain: 0.15, type: 'sine' as OscillatorType },

@@ -335,11 +335,6 @@ export class HuffmanEngine {
 		};
 	}
 
-	/**
-	 * Verdadeiro quando a árvore do jogador tem custo ótimo mas atribui
-	 * comprimentos de código diferentes da árvore de referência: com empates
-	 * de frequência, existem várias árvores de Huffman igualmente ótimas.
-	 */
 	public isAlternativeOptimal(): boolean {
 		if (!this.playerRoot || this.playerTotalBits !== this.optimalTotalBits) return false;
 		for (const [char, code] of this.optimalCodes) {
@@ -463,7 +458,6 @@ export class HuffmanEngine {
 		const metrics = this.getMetrics();
 		const totalChars = this.message.length;
 
-		// Calculate Shannon Entropy: H(X) = -sum(p_i * log2(p_i))
 		let shannonEntropy = 0;
 		for (const freq of this.frequencies.values()) {
 			if (freq > 0 && totalChars > 0) {
@@ -473,7 +467,6 @@ export class HuffmanEngine {
 		}
 		shannonEntropy = Math.round(shannonEntropy * 1000) / 1000;
 
-		// Character table
 		const sortedChars = Array.from(this.frequencies.entries()).sort((a, b) => b[1] - a[1]);
 		const characterTable: CharacterCodeReport[] = sortedChars.map(([ch, freq]) => {
 			const playerCode = this.playerCodes.get(ch) || '-';
@@ -497,7 +490,6 @@ export class HuffmanEngine {
 
 		const asciiTree = this.generateAsciiTree();
 
-		// Markdown report
 		let md = `# RELATÓRIO TÉCNICO // ALGORITMO AMBICIOSO DE HUFFMAN\n`;
 		md += `> **Estação Tartarus-V // Módulo de Transmissão Acústica Sonarwave**\n\n`;
 		md += `## 1. Dados da Mensagem\n`;

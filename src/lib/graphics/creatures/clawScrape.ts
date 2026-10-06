@@ -12,12 +12,10 @@ function createSickleClawGeometry(length: number, baseRadius: number, forwardRea
 
 	for (let i = 0; i <= segments; i++) {
 		const t = i / segments;
-		// Exponential taper: robust chitinous base tapering to razor-sharp apex tip
 		const taper = Math.pow(1.0 - t, 0.8);
 		const rX = baseRadius * 0.4 * taper;
 		const rZ = baseRadius * 0.75 * taper;
 
-		// Extends along -Y, reaches forward towards glass along +Z
 		const y = -t * length;
 		const z = Math.sin(t * Math.PI * 0.5) * forwardReach;
 		const xOffset = Math.sin(t * Math.PI) * (baseRadius * 0.1);
@@ -27,7 +25,6 @@ function createSickleClawGeometry(length: number, baseRadius: number, forwardRea
 			const cosTh = Math.cos(theta);
 			const sinTh = Math.sin(theta);
 
-			// Teardrop / knife-blade cross-section: front ridge (sinTh > 0) is sharper
 			const sharpness = sinTh > 0 ? 0.6 + 0.4 * Math.cos(theta) : 1.0;
 			const vx = xOffset + cosTh * rX * sharpness;
 			const vy = y + cosTh * (rX * 0.15);
@@ -120,7 +117,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			color: 0x00ffcc
 		});
 
-		// Coxa (upper arm segment) - lengthened so the base reaches far off-screen above the viewport
 		this.coxaArm = new THREE.Group();
 		this.limbRoot.add(this.coxaArm);
 
@@ -154,13 +150,11 @@ export class ClawScrapeActor implements WindowEventActor {
 
 		const coxaTotalLen = (numUpperPlates - 1) * 0.26;
 
-		// Elbow membrane joint
 		const elbowMembrane = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), jointMat);
 		elbowMembrane.scale.set(1.1, 0.9, 0.8);
 		elbowMembrane.position.set(0, -coxaTotalLen, -0.08);
 		this.coxaArm.add(elbowMembrane);
 
-		// Merus (forearm segment)
 		this.merusArm = new THREE.Group();
 		this.merusArm.position.set(0, -coxaTotalLen, -0.08);
 		this.coxaArm.add(this.merusArm);
@@ -186,12 +180,10 @@ export class ClawScrapeActor implements WindowEventActor {
 			}
 		}
 
-		// Carpus joint
 		this.carpusJoint = new THREE.Group();
 		this.carpusJoint.position.set(0, -0.88, -0.04);
 		this.merusArm.add(this.carpusJoint);
 
-		// Propodus (hand)
 		this.propodusHand = new THREE.Group();
 		this.carpusJoint.add(this.propodusHand);
 
@@ -207,7 +199,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			this.propodusHand.add(flange);
 		}
 
-		// 4 specialized crustacean talons (including opposable dactyl spur / thumb)
 		const talonConfigs = [
 			{ id: 'left', x: -0.20, length: 0.82, radius: 0.065, reach: 0.20, rotZ: 0.22, rotY: -0.08, scale: 0.96 },
 			{ id: 'center', x: 0.0, length: 0.98, radius: 0.075, reach: 0.22, rotZ: 0.0, rotY: 0.0, scale: 1.1 },
@@ -223,7 +214,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			const knuckle = new THREE.Mesh(new THREE.SphereGeometry(cfg.radius * 1.1, 10, 10), jointMat);
 			talonGroup.add(knuckle);
 
-			// Bioluminescent photophore on knuckle
 			const knucklePhoto = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), photophoreMat);
 			knucklePhoto.position.set(0, 0, cfg.radius * 0.8);
 			talonGroup.add(knucklePhoto);
@@ -234,7 +224,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			sickleMesh.scale.set(cfg.scale, cfg.scale, cfg.scale);
 			talonGroup.add(sickleMesh);
 
-			// Sawtooth denticles along inner biting curve
 			const numDenticles = 6;
 			for (let d = 0; d < numDenticles; d++) {
 				const dt = (d + 1) / (numDenticles + 1);
@@ -253,7 +242,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			this.propodusHand.add(talonGroup);
 		}
 
-		// Spark particle system
 		const sparkCount = 90;
 		this.sparkPositions = new Float32Array(sparkCount * 3);
 		this.sparkVelocities = new Float32Array(sparkCount * 3);
@@ -295,7 +283,6 @@ export class ClawScrapeActor implements WindowEventActor {
 		this.stickSlipTimer = 0;
 		this.root.visible = true;
 
-		// Initial stance: creature arm base originates high off-screen above the viewport
 		this.limbRoot.position.set(0.0, 6.2, -0.86);
 		this.limbRoot.rotation.set(0.0, 0.0, 0.0);
 
@@ -320,7 +307,6 @@ export class ClawScrapeActor implements WindowEventActor {
 			return false;
 		}
 
-		// Bioluminescent photophore pulse
 		const isScraping = progress >= 0.22 && progress <= 0.78;
 		const glow = isScraping
 			? 0.75 + Math.sin(this.elapsed * 24.0) * 0.25
@@ -331,17 +317,16 @@ export class ClawScrapeActor implements WindowEventActor {
 		}
 
 		if (progress < 0.22) {
-			// Phase 1: Approach - claws angle in from above off-screen towards the center of the window
 			const p = progress / 0.22;
 			const ease = Math.sin((p * Math.PI) / 2);
 
 			this.limbRoot.position.x = 0.0;
-			this.limbRoot.position.y = 6.2 - ease * 1.0; // 6.2 -> 5.2 (claw tips arrive at top of window Y = +1.21)
-			this.limbRoot.position.z = -0.86 + ease * 0.26; // -0.86 -> -0.600
+			this.limbRoot.position.y = 6.2 - ease * 1.0; 
+			this.limbRoot.position.z = -0.86 + ease * 0.26; 
 
-			this.coxaArm.rotation.x = 0.12 - ease * 0.23; // 0.12 -> -0.11
-			this.merusArm.rotation.x = 0.06 - ease * 0.12; // 0.06 -> -0.06
-			this.propodusHand.rotation.x = -0.04 + ease * 0.12; // -0.04 -> 0.08
+			this.coxaArm.rotation.x = 0.12 - ease * 0.23; 
+			this.merusArm.rotation.x = 0.06 - ease * 0.12; 
+			this.propodusHand.rotation.x = -0.04 + ease * 0.12; 
 
 			for (const t of this.clawTalons) {
 				t.rotation.x = ease * 0.05;
@@ -352,7 +337,6 @@ export class ClawScrapeActor implements WindowEventActor {
 				ctx.audio?.playHullKnock(ctx.pan(this.opening));
 			}
 		} else if (progress <= 0.78) {
-			// Phase 2: Violent window glass scrape centered on the hatch (X = 0)
 			if (!this.scrapeStarted) {
 				this.scrapeStarted = true;
 				ctx.audio?.playWindowScrape(ctx.pan(this.opening));
@@ -364,10 +348,8 @@ export class ClawScrapeActor implements WindowEventActor {
 			this.stickSlipTimer += dt * 14.0;
 			const slipJitter = (Math.sin(this.stickSlipTimer) + Math.cos(this.stickSlipTimer * 2.3)) * 0.015;
 
-			// Claw tips tear down across the window from Y = +1.21 to Y = -1.08
 			this.limbRoot.position.y = 5.2 - scrapeP * 2.3 + slipJitter;
 			this.limbRoot.position.x = Math.sin(scrapeP * Math.PI * 3) * 0.025;
-			// Hard clamped to prevent any vertex from penetrating window glass
 			this.limbRoot.position.z = -0.600 + Math.sin(this.elapsed * 25.0) * 0.002;
 
 			this.coxaArm.rotation.x = -0.11 + Math.sin(this.elapsed * 8.0) * 0.006;
@@ -380,7 +362,6 @@ export class ClawScrapeActor implements WindowEventActor {
 				this.clawTalons[i].rotation.x = 0.05 + Math.sin(this.elapsed * 18.0 + i) * 0.01;
 			}
 
-			// Friction sparks generated precisely at the scraping talon apex contact point
 			const sparkMat = this.sparkSystem.material as THREE.PointsMaterial;
 			sparkMat.opacity = 0.88 + Math.sin(this.elapsed * 32.0) * 0.12;
 
@@ -415,15 +396,14 @@ export class ClawScrapeActor implements WindowEventActor {
 				ctx.shake(0.08);
 			}
 		} else {
-			// Phase 3: Departure - recoil and disappear UPWARDS into the upper ocean abyss ("sumir pra cima")
 			const leaveP = (progress - 0.78) / 0.22;
 			const ease = Math.pow(leaveP, 1.8);
 
 			(this.sparkSystem.material as THREE.PointsMaterial).opacity = Math.max(0, 1.0 - leaveP * 3.5);
 			this.sparkLight.intensity = Math.max(0, this.sparkLight.intensity - dt * 7.0);
 
-			this.limbRoot.position.z = -0.600 - ease * 4.5; // pulls back into deep water (-0.60 -> -5.1m)
-			this.limbRoot.position.y = 2.9 + ease * 4.8;    // yanks UPWARDS: 2.9 -> 7.7m (tips reach Y = +4.97m, far above screen)
+			this.limbRoot.position.z = -0.600 - ease * 4.5; 
+			this.limbRoot.position.y = 2.9 + ease * 4.8;    
 			this.limbRoot.position.x = Math.sin(leaveP * Math.PI) * 0.08;
 
 			this.coxaArm.rotation.x = THREE.MathUtils.lerp(this.coxaArm.rotation.x, 0.28, Math.min(1.0, dt * 5.0));

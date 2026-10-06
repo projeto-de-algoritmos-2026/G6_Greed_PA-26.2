@@ -20,12 +20,6 @@ function collectCodes(node: HuffmanNode, prefix: string, codes: Map<string, stri
 	if (node.right) collectCodes(node.right, prefix + '1', codes);
 }
 
-/**
- * A criatura "imita" a superfície com uma árvore quase ótima: parte da árvore
- * de Huffman e troca de lugar uma folha frequente e rasa com uma folha rara e
- * profunda. A forma continua plausível, mas a escolha gulosa é violada (as
- * folhas irmãs mais profundas deixam de ser as de menor peso) e o custo sobe.
- */
 function buildMimicTree(optimal: HuffmanNode): HuffmanNode {
 	const root = relabel(optimal, 'mim');
 	const leaves: Array<{ node: HuffmanNode; depth: number }> = [];

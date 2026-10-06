@@ -18,14 +18,12 @@ export interface TerminalScreenState {
 	fullBitStream: string;
 	currentBitIndex: number;
 	safeBitQuota: number;
-	// Símbolos cuja frequência chegou corrompida e aparece como "??".
 	hiddenChars: string[];
 	silenceRemaining: number;
 	leakMultiplier: number;
 	hullIntegrity: number;
 	isTransmissionInterrupted: boolean;
 	holdRemaining: number;
-	// Código de cada caractere da mensagem, na ordem de transmissão.
 	symbolCodes: string[];
 	isAlternativeOptimal: boolean;
 	hasDecode: boolean;
@@ -71,7 +69,6 @@ export type ScreenActionCallback = (action: {
 
 interface TreeDrawOptions {
 	selectedIds: readonly string[];
-	// Nós realçados como disponíveis; null realça todos.
 	availableIds: ReadonlySet<string> | null;
 	hiddenIds: ReadonlySet<string>;
 	isClickable: (node: HuffmanNode) => boolean;
@@ -428,10 +425,6 @@ export class TerminalScreenCanvas {
 		});
 	}
 
-	/**
-	 * Ids dos nós cujo peso não pode ser exibido: folhas corrompidas e todo
-	 * ancestral delas (a soma revelaria o valor oculto).
-	 */
 	private hiddenNodeIds(roots: HuffmanNode[], hiddenChars: string[]): Set<string> {
 		const hidden = new Set<string>();
 		if (hiddenChars.length === 0) return hidden;
@@ -455,8 +448,6 @@ export class TerminalScreenCanvas {
 		areaHeight: number,
 		opts: TreeDrawOptions
 	): void {
-		// As posições ficam num mapa local indexado por id: os nós chegam do Svelte
-		// como proxies de $state, e gravar x/y neles não se propaga entre cópias.
 		const { nodes, positions, nodeW: nw, nodeH: nh } = this.layoutNodes(
 			roots,
 			left,
@@ -547,12 +538,6 @@ export class TerminalScreenCanvas {
 		}
 	}
 
-	/**
-	 * Posiciona a floresta de subárvores de baixo para cima: cada folha recebe uma
-	 * fatia horizontal própria (subárvores ocupam fatias contíguas proporcionais ao
-	 * número de folhas) e cada nó interno fica acima do filho mais alto. Os tamanhos
-	 * dos nós encolhem para que a floresta inteira caiba na área, sem sobreposição.
-	 */
 	private layoutNodes(
 		roots: HuffmanNode[],
 		left: number,
@@ -690,7 +675,6 @@ export class TerminalScreenCanvas {
 			by + 72
 		);
 
-		// Alfabetos maiores encolhem os cartões para que todos caibam na bandeja.
 		const count = Math.max(1, state.availableNodes.length);
 		const gap = count > 12 ? 6 : 12;
 		const cardW = Math.min(68, (this.width - 48 - gap * (count - 1)) / count);
@@ -845,8 +829,6 @@ export class TerminalScreenCanvas {
 			145
 		);
 
-		// Cada símbolo da mensagem ocupa um grupo de bits; os grupos são separados
-		// visualmente e o símbolo em transmissão é exibido com seu código.
 		const chars = [...state.message];
 		const groupOfBit: number[] = [];
 		state.symbolCodes.forEach((code, g) => {
@@ -1001,7 +983,6 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = 'rgba(0, 18, 12, 0.92)';
 		ctx.fillRect(0, 0, this.width, this.height);
 
-		// Header Frame
 		ctx.strokeStyle = '#00ffaa';
 		ctx.lineWidth = 1.5;
 		ctx.strokeRect(40, 28, this.width - 80, 712);
@@ -1015,7 +996,6 @@ export class TerminalScreenCanvas {
 		ctx.textAlign = 'center';
 		ctx.fillText('RELATÓRIO DE DEBRIEFING // ALGORITMO DE HUFFMAN', this.width / 2, 63);
 
-		// Subtitle & Status
 		ctx.font = '12px "Courier New", monospace';
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
 		const subtitleText = state.hasDecode
@@ -1028,13 +1008,11 @@ export class TerminalScreenCanvas {
 			state.hullIntegrity < 50 ? '#ff3b3b' : state.hullIntegrity < 80 ? '#ffaa00' : 'rgba(0, 255, 170, 0.85)';
 		ctx.fillText(`INTEGRIDADE DO CASCO: ${Math.round(state.hullIntegrity)}%`, this.width / 2, 122);
 
-		// Metrics Cards Area
 		const cardY = 134;
 		const cardH = 88;
 		const gap = 16;
 		const cardW = (this.width - 120 - gap * 2) / 3;
 
-		// Card 1: Eficiência Ambiciosa
 		const c1X = 60;
 		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
 		ctx.fillRect(c1X, cardY, cardW, cardH);
@@ -1048,7 +1026,6 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = state.metrics.efficiency >= 95 ? '#00ffaa' : '#ffaa00';
 		ctx.fillText(`${state.metrics.efficiency}%`, c1X + cardW / 2, cardY + 60);
 
-		// Card 2: Compressão vs ASCII 8-bit
 		const c2X = c1X + cardW + gap;
 		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
 		ctx.fillRect(c2X, cardY, cardW, cardH);
@@ -1062,7 +1039,6 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = '#00ffaa';
 		ctx.fillText(`${state.metrics.compressionRatio}%`, c2X + cardW / 2, cardY + 60);
 
-		// Card 3: Total de Bits
 		const c3X = c2X + cardW + gap;
 		ctx.fillStyle = 'rgba(0, 32, 20, 0.7)';
 		ctx.fillRect(c3X, cardY, cardW, cardH);
@@ -1079,7 +1055,6 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
 		ctx.fillText(`ASCII Bruto: ${state.metrics.rawAsciiBits}b`, c3X + cardW / 2, cardY + 74);
 
-		// Character Prefix Dictionary Table (Compact Grid)
 		const tableY = 244;
 		const tableW = this.width - 120;
 		const tableH = 220;
@@ -1114,7 +1089,6 @@ export class TerminalScreenCanvas {
 			);
 		});
 
-		// Theoretical Information Section
 		const entropyY = 484;
 		ctx.fillStyle = 'rgba(0, 28, 18, 0.7)';
 		ctx.fillRect(60, entropyY, tableW, 90);
@@ -1146,7 +1120,6 @@ export class TerminalScreenCanvas {
 		}
 		ctx.fillText(diagText, 76, entropyY + 68);
 
-		// Action Buttons
 		const btnY = 594;
 		const halfW = (this.width - 120 - 20) / 2;
 
@@ -1196,8 +1169,6 @@ export class TerminalScreenCanvas {
 		ctx.fillStyle = risk > 75 ? '#ff3b3b' : risk > 45 ? '#ffaa00' : '#00ffaa';
 		ctx.fillText(`RISCO: ${risk}%`, this.width - 24, 40);
 
-		// Fluxo de bits: o trecho já decodificado fica aceso e o cursor marca
-		// onde começa o próximo código (o jogador precisa achar onde ele termina).
 		ctx.fillStyle = '#01120a';
 		ctx.fillRect(24, 56, this.width - 48, 108);
 		ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';

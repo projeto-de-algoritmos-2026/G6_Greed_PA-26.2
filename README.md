@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/Logo.png" alt="SONARWAVE - Terror Abissal e Algoritmo de Huffman" width="380" />
+  <img src="./assets/Logo.png" alt="SONARWAVE - Terror Abissal e Algoritmo de Huffman" />
 </p>
 
 <p align="center">
@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/JOGAR%20AGORA-2563eb?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yMS41OCAxNi4wOWwtMS4wOS03LjY2QzIwLjIxIDYuNDYgMTguNTIgNSAxNi41MyA1SDcuNDdDNS40OCA1IDMuNzkgNi40NiAzLjUxIDguNDNsLTEuMDkgNy42NkMyLjIgMTcuNjMgMy4zOSAxOSA0Ljk0IDE5Yy42OSAwIDEuMzItLjI4IDEuNzctLjc0TDkgMTZoNmwyLjI5IDIuMjZjLjQ1LjQ2IDEuMDguNzQgMS43Ny43NCAxLjU1IDAgMi43NC0xLjM3IDIuNTItMi45MXpNMTEgMTFIOXYySDh2LTJINnYtMWgyVjhoMXYyaDJ2MXptNC0xYy0uNTUgMC0xLS40NS0xLTFzLjQ1LTEgMS0xIDEgLjQ1IDEgMS0uNDUgMS0xIDF6bTIgM2MtLjU1IDAtMS0uNDUtMS0xcy40NS0xIDEtMSAxIC40NSAxIDEtLjQ1IDEtMSAxeiIvPjwvc3ZnPg==" alt="Jogar Agora" />
   </a>
   &nbsp;&nbsp;
-  <a href="https://youtu.be/Dm7IThr2un4" target="_blank">
+  <a href="https://youtu.be/66oQ009uz70" target="_blank">
     <img src="https://img.shields.io/badge/ASSISTIR%20APRESENTA%C3%87%C3%83O-c4302b?style=for-the-badge&logo=youtube&logoColor=white" alt="Vídeo de Apresentação" />
   </a>
 </p>
@@ -67,7 +67,7 @@ Você assume o controle do posto de comunicação a bordo do submarino de pesqui
 
 ![Visão Geral da Cabine](./assets/screenshot-cabin.png)
 
-## 🎮 Fases e Mecânicas de Jogo
+## Fases e Mecânicas de Jogo
 
 A cada carregamento, a fase sorteia uma mensagem do seu conjunto, então a árvore
 muda entre tentativas.
@@ -180,7 +180,7 @@ O jogo estará disponível no navegador em: `http://localhost:5173/`
 
 ### Link do Vídeo de Apresentação
 
-- [https://youtu.be/Dm7IThr2un4](https://youtu.be/Dm7IThr2un4)
+- [https://youtu.be/66oQ009uz70](https://youtu.be/66oQ009uz70)
 
 ### Comandos Adicionais
 

@@ -61,7 +61,7 @@ export class CRTMonitor {
 		lctx.font = 'bold 24px "Courier New", monospace';
 		lctx.fillStyle = '#00cc88';
 		lctx.textAlign = 'center';
-		lctx.fillText('TARTARUS-V // CONSOLE A // 8.000M', 256, 42);
+		lctx.fillText('TARTARUS-V // CONSOLE A', 256, 42);
 
 		const plate = new THREE.Mesh(
 			new THREE.PlaneGeometry(2.4, 0.25),

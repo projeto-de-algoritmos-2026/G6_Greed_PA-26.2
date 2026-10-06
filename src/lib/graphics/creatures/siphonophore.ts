@@ -41,7 +41,6 @@ export class SiphonophoreActor implements WindowEventActor {
 			metalness: 0.1
 		});
 
-		// 6 shared materials for cyclic bioluminescent pulse instead of 36 distinct clones
 		for (let m = 0; m < 6; m++) {
 			this.zooidMaterials.push(jellyMat.clone());
 		}
@@ -136,7 +135,6 @@ export class SiphonophoreActor implements WindowEventActor {
 		this.siphonophoreRoot.position.z = -2.5 + Math.sin(progress * Math.PI) * 0.30;
 		this.siphonophoreRoot.rotation.set(0, -0.03, -0.02);
 
-		// Update 6 shared materials instead of looping over 36 individual instances
 		for (let m = 0; m < 6; m++) {
 			const lumPhase = (this.elapsed * 4.0 - m * 0.5) % (Math.PI * 2);
 			const lumBrightness = 0.5 + Math.sin(lumPhase) * 0.8;
@@ -155,7 +153,6 @@ export class SiphonophoreActor implements WindowEventActor {
 			this.tentacles[i].rotation.x = Math.cos(this.elapsed * 1.2 + i * 0.2) * 0.2;
 		}
 
-		// Update stem line vertex positions in-place without disposing/reallocating geometries
 		const pts = this.stemCurve.getPoints(this.numStemSamples - 1);
 		const posArr = this.stemPositions;
 		for (let p = 0; p < pts.length; p++) {

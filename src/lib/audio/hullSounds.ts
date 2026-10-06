@@ -89,7 +89,7 @@ export class HullSoundSynthesizer {
 		thudOsc.frequency.setValueAtTime(140, now);
 		thudOsc.frequency.exponentialRampToValueAtTime(32, now + 0.55);
 
-		thudGain.gain.setValueAtTime(0.85, now);
+		thudGain.gain.setValueAtTime(0.45, now);
 		thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
 
 		const sat = createSaturationNode(ctx, 2.2);
@@ -115,7 +115,7 @@ export class HullSoundSynthesizer {
 		clangFilter.frequency.setValueAtTime(360, now + 0.015);
 		clangFilter.Q.setValueAtTime(7.5, now);
 
-		clangGain.gain.setValueAtTime(0.45, now + 0.015);
+		clangGain.gain.setValueAtTime(0.25, now + 0.015);
 		clangGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
 
 		clangOsc.connect(clangFilter);

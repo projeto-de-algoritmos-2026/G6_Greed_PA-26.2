@@ -352,7 +352,6 @@ export class MedCabinet {
 		S: number,
 		logoImg: HTMLImageElement
 	): void {
-		// --- 1. PAPEL PAUTADO CLÁSSICO DE LABORATÓRIO / ENGENHARIA ---
 		const bgGrad = ctx.createRadialGradient(S / 2, S / 2, 250, S / 2, S / 2, 1050);
 		bgGrad.addColorStop(0, '#fdfbf6');
 		bgGrad.addColorStop(0.7, '#f7f0e4');
@@ -360,7 +359,6 @@ export class MedCabinet {
 		ctx.fillStyle = bgGrad;
 		ctx.fillRect(0, 0, S, S);
 
-		// Granulação e textura orgânica de celulose
 		const imgData = ctx.getImageData(0, 0, S, S);
 		const px = imgData.data;
 		for (let i = 0; i < px.length; i += 8) {
@@ -371,7 +369,6 @@ export class MedCabinet {
 		}
 		ctx.putImageData(imgData, 0, 0);
 
-		// LINHAS PAUTADAS AZUIS HORIZONTAIS
 		const lineSpacing = 32;
 		for (let y = 64; y < S - 35; y += lineSpacing) {
 			const isMajor = Math.floor(y / lineSpacing) % 5 === 0;
@@ -383,7 +380,6 @@ export class MedCabinet {
 			ctx.stroke();
 		}
 
-		// MARGEM VERTICAL VERMELHA DUPLA À ESQUERDA
 		const mX1 = 150;
 		const mX2 = 154;
 		ctx.strokeStyle = 'rgba(215, 60, 60, 0.48)';
@@ -400,7 +396,6 @@ export class MedCabinet {
 		ctx.lineTo(mX2, S - 35);
 		ctx.stroke();
 
-		// FUROS DE FICHÁRIO À ESQUERDA
 		const holeX = 65;
 		for (const hy of [220, 768, 1316]) {
 			ctx.fillStyle = '#e8d8be';
@@ -418,9 +413,8 @@ export class MedCabinet {
 		}
 
 		const contentX = 175;
-		const contentW = S - contentX - 65; // ~1296px
+		const contentW = S - contentX - 65; 
 
-		// Helper: Desenho de Marca-texto amarelo
 		const drawHighlighter = (x: number, y: number, w: number, h: number) => {
 			ctx.save();
 			ctx.fillStyle = 'rgba(255, 235, 60, 0.45)';
@@ -430,7 +424,6 @@ export class MedCabinet {
 			ctx.restore();
 		};
 
-		// Helper: Caixa estilo rascunho de caderno
 		const drawBox = (x: number, y: number, w: number, h: number, bg: string, border: string) => {
 			ctx.fillStyle = bg;
 			ctx.beginPath();
@@ -441,7 +434,6 @@ export class MedCabinet {
 			ctx.stroke();
 		};
 
-		// --- 2. CABEÇALHO DO MANUAL COM CARIMBO DE TINTA AZUL ---
 		drawHighlighter(contentX - 4, 60, 710, 36);
 		ctx.textAlign = 'left';
 		ctx.fillStyle = '#102036';
@@ -452,7 +444,6 @@ export class MedCabinet {
 		ctx.font = 'bold 15px "Courier New", monospace';
 		ctx.fillText('Como construir a Árvore Binária Ótima através da Escolha Gulosa.', contentX + 6, 116);
 
-		// Faixa destacada com a regra de ouro
 		ctx.fillStyle = 'rgba(255, 245, 160, 0.7)';
 		ctx.strokeStyle = '#dfc246';
 		ctx.lineWidth = 1.2;
@@ -465,7 +456,6 @@ export class MedCabinet {
 		ctx.font = '900 13.5px "Courier New", monospace';
 		ctx.fillText('REGRA DE OURO: Letras frequentes usam 1 ou 2 bits. Letras raras usam 3 ou 4 bits.', contentX + 12, 156);
 
-		// CARIMBO DO PEIXE (terminal.png) EM TINTA AZUL NO CANTO SUPERIOR DIREITO
 		const stampCX = contentX + contentW - 100;
 		const stampCY = 100;
 		const stampR = 64;
@@ -492,16 +482,13 @@ export class MedCabinet {
 		ctx.fillText('TARTARUS LABS', 0, -stampR + 17);
 		ctx.fillText('HUFFMAN APROVADO', 0, stampR - 12);
 
-		// Tintura azul militar para o peixe carimbado
 		drawTintedImage(ctx, logoImg, -38, -36, 76, 76, '#1b3a5d');
 		ctx.restore();
 
-		// --- 3. PARTE 1: OS 3 PASSOS DA ESCOLHA GULOSA (Y: 190 a 435) ---
 		const sY = 190;
 		const sH = 240;
 		const stepW = Math.floor((contentW - 30) / 3);
 
-		// PASSO 1: IDENTIFICAR OS MENORES
 		const p1X = contentX;
 		drawBox(p1X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
 		drawHighlighter(p1X + 10, sY + 8, 260, 24);
@@ -515,7 +502,6 @@ export class MedCabinet {
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.fillText('Ordene a fila de prioridade pelo peso:', p1X + 12, sY + 50);
 
-		// Mini cards [A:2] [B:3] [C:5] [D:8]
 		const drawMiniCard = (x: number, y: number, ch: string, w: number, isMin: boolean) => {
 			ctx.fillStyle = isMin ? '#fdedea' : '#eef4f8';
 			ctx.strokeStyle = isMin ? '#cc2222' : '#456a88';
@@ -539,7 +525,6 @@ export class MedCabinet {
 		drawMiniCard(p1X + 164, sY + 66, 'C', 5, false);
 		drawMiniCard(p1X + 240, sY + 66, 'D', 8, false);
 
-		// Círculo vermelho feito à mão contornando A e B
 		ctx.strokeStyle = '#d42222';
 		ctx.lineWidth = 2.4;
 		ctx.beginPath();
@@ -559,7 +544,6 @@ export class MedCabinet {
 		ctx.font = '900 12px "Courier New", monospace';
 		ctx.fillText('Clique ou use teclas 1..4', p1X + 12, sY + 212);
 
-		// PASSO 2: FUNDIR COM ESPAÇO
 		const p2X = p1X + stepW + 15;
 		drawBox(p2X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
 		drawHighlighter(p2X + 10, sY + 8, 240, 24);
@@ -572,7 +556,6 @@ export class MedCabinet {
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.fillText('Crie um Nó Pai somando os pesos:', p2X + 12, sY + 50);
 
-		// Caixa de fusão do nó pai
 		ctx.fillStyle = '#e8f6ed';
 		ctx.strokeStyle = '#1d7844';
 		ctx.lineWidth = 2.0;
@@ -605,7 +588,6 @@ export class MedCabinet {
 		ctx.font = '900 12px "Courier New", monospace';
 		ctx.fillText('Pressione [ESPAÇO] para fundir', p2X + 12, sY + 212);
 
-		// PASSO 3: REPETIR ATÉ A RAIZ
 		const p3X = p2X + stepW + 15;
 		drawBox(p3X, sY, stepW, sH, 'rgba(255, 255, 255, 0.88)', '#386287');
 		drawHighlighter(p3X + 10, sY + 8, 250, 24);
@@ -636,18 +618,15 @@ export class MedCabinet {
 		ctx.font = '900 12px "Courier New", monospace';
 		ctx.fillText('Pressione [ENTER] para emitir', p3X + 12, sY + 212);
 
-		// --- 4. PARTE 2: A GRANDE ÁRVORE BINÁRIA ESPAÇOSA E LIMPA (Y: 450 a 1015) ---
 		const treeY = 450;
 		const treeH = 565;
 		drawBox(contentX, treeY, contentW, treeH, 'rgba(255, 255, 255, 0.92)', '#244560');
 
-		// Barra de título da árvore
 		drawHighlighter(contentX + 12, treeY + 10, 840, 28);
 		ctx.fillStyle = '#0a1624';
 		ctx.font = '900 14.5px "Courier New", monospace';
 		ctx.fillText('DEMONSTRAÇÃO DA ÁRVORE COMPLETA // RAMO ESQUERDO = BIT \'0\'  |  RAMO DIREITO = BIT \'1\'', contentX + 18, treeY + 29);
 
-		// Coordenadas centrais da árvore
 		const rx = contentX + Math.floor(contentW * 0.42);
 		const ry = treeY + 85;
 
@@ -682,7 +661,6 @@ export class MedCabinet {
 			ctx.lineTo(x2, y2);
 			ctx.stroke();
 
-			// Pílula com o bit 0 ou 1
 			const mx = (x1 + x2) / 2;
 			const my = (y1 + y2) / 2;
 			ctx.fillStyle = bit === '0' ? '#d4f2df' : '#fcedd2';
@@ -700,7 +678,6 @@ export class MedCabinet {
 			ctx.textAlign = 'left';
 		};
 
-		// Posições dos nós
 		const nRoot = { x: rx, y: ry };
 		const nD = { x: rx - 190, y: ry + 115 };
 		const n10 = { x: rx + 150, y: ry + 115 };
@@ -709,7 +686,6 @@ export class MedCabinet {
 		const nA = { x: n5.x - 70, y: n5.y + 125 };
 		const nB = { x: n5.x + 70, y: n5.y + 125 };
 
-		// Ramos com 0 e 1
 		drawBranch(nRoot.x, nRoot.y + 28, nD.x, nD.y - 28, '0');
 		drawBranch(nRoot.x, nRoot.y + 28, n10.x, n10.y - 28, '1');
 
@@ -719,7 +695,6 @@ export class MedCabinet {
 		drawBranch(n5.x, n5.y + 28, nA.x, nA.y - 28, '0');
 		drawBranch(n5.x, n5.y + 28, nB.x, nB.y - 28, '1');
 
-		// Desenho dos nós
 		drawCircleNode(nRoot.x, nRoot.y, '18', false, 18);
 		drawCircleNode(nD.x, nD.y, "'D'", true, 8);
 		drawCircleNode(n10.x, n10.y, '10', false, 10);
@@ -728,7 +703,6 @@ export class MedCabinet {
 		drawCircleNode(nA.x, nA.y, "'A'", true, 2);
 		drawCircleNode(nB.x, nB.y, "'B'", true, 3);
 
-		// TABELA LATERAL DE PREFIXOS AO LADO DA ÁRVORE (DIREITA)
 		const sideTabX = contentX + contentW - 380;
 		const sideTabY = treeY + 50;
 		drawBox(sideTabX, sideTabY, 360, 440, '#f8fcff', '#3c6991');
@@ -775,12 +749,10 @@ export class MedCabinet {
 		ctx.font = 'bold 11px "Courier New", monospace';
 		ctx.fillText('Nenhum código é início de outro!', sideTabX + 16, sideTabY + 412);
 
-		// Anotação manuscrita embaixo da árvore
 		ctx.fillStyle = '#156035';
 		ctx.font = '900 13.5px "Courier New", monospace';
 		ctx.fillText('✔ Repare: \'D\' (peso 8) está a apenas 1 salto da raiz e gasta apenas 1 bit (\'0\')!', contentX + 20, treeY + treeH - 24);
 
-		// --- 5. PARTE 3: COMPROVAÇÃO MATEMÁTICA E ECONOMIA DE BITS (Y: 1035 a 1230) ---
 		const savY = 1035;
 		const savH = 195;
 		drawBox(contentX, savY, contentW, savH, 'rgba(255, 255, 255, 0.88)', '#244560');
@@ -790,7 +762,6 @@ export class MedCabinet {
 		ctx.font = '900 14px "Courier New", monospace';
 		ctx.fillText('COMPROVAÇÃO MATEMÁTICA: O IMPACTO NO CASCO', contentX + 20, savY + 28);
 
-		// Barra Vermelha (ASCII)
 		const bY1 = savY + 50;
 		ctx.fillStyle = '#c32323';
 		ctx.fillRect(contentX + 20, bY1, contentW - 40, 34);
@@ -798,9 +769,8 @@ export class MedCabinet {
 		ctx.font = '900 13px "Courier New", monospace';
 		ctx.fillText('ASCII PADRÃO (8-BIT):  18 letras × 8 bits = 144 BITS   [ ALTO RISCO DE DETECÇÃO PELO MONSTRO ]', contentX + 35, bY1 + 22);
 
-		// Barra Verde (Huffman)
 		const bY2 = savY + 95;
-		const huffW = Math.floor((contentW - 40) * 0.23); // 23% do comprimento!
+		const huffW = Math.floor((contentW - 40) * 0.23); 
 		ctx.fillStyle = '#198c41';
 		ctx.fillRect(contentX + 20, bY2, huffW, 34);
 		ctx.strokeStyle = '#198c41';
@@ -819,7 +789,6 @@ export class MedCabinet {
 		ctx.font = 'bold 12px "Courier New", monospace';
 		ctx.fillText('Conclusão: Cada bit economizado reduz o alcance sonoro das ondas na fossa em centenas de metros.', contentX + 20, savY + 160);
 
-		// --- 6. PARTE 4: COMANDOS DA BANCADA NO TERMINAL (Y: 1245 a 1485) ---
 		const ctlY = 1245;
 		const ctlH = 240;
 		drawBox(contentX, ctlY, contentW, ctlH, 'rgba(255, 255, 255, 0.88)', '#355975');
